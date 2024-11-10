@@ -1,9 +1,12 @@
 import streamlit as st
-#import streamlit_authenticator as stauth
 
-col1, col2= st.columns([6,1])  
-with col2:
-    sign_out = st.button('Sign Out')
+# Initialize authenticated state if not already in session
+if 'authenticated' not in st.session_state:
+    st.session_state['authenticated'] = False  # Default to False (not logged in)
+
+# Initialize professor state if not already in session
+if 'professor' not in st.session_state:
+    st.session_state['professor'] = False
 
 st.markdown("# AI Assistant Competition")
 st.sidebar.header("AI Assistant Competition")
