@@ -1,11 +1,5 @@
 import psycopg2
-
-from flask import flash
 from flask import Flask
-from flask import render_template
-from flask import request
-from datetime import datetime
-
 
 app = Flask(__name__)
 app.secret_key = 'key' 
@@ -53,6 +47,7 @@ def update_professor(username, email, password_hash):
     except Exception:
         return False
 
+
 # Function to validate if an email belongs to a professor
 def is_valid_professor_email(email):
     try:
@@ -70,6 +65,7 @@ def is_valid_professor_email(email):
             
     except Exception:
         return False
+
 
 # Function to validate if the user that logged in is a Professor
 def is_professor(email):
@@ -91,6 +87,44 @@ def is_professor(email):
                 is_prof = cur.fetchone()[0]
                 
                 return is_prof
+            
+    except Exception:
+        return False
+
+
+# Function to get a user by email
+def get_user_by_email(email):
+    try:
+        with psycopg2.connect(DB_CONNECTION_STRING) as conn:
+            with conn.cursor() as cur:
+                
+                query = "SELECT 1 FROM Users WHERE email = %s;"
+
+                cur.execute(query, (email,))
+                
+                # Fetch the result
+                exists = cur.fetchone()[0]
+                
+                return exists
+            
+    except Exception:
+        return False
+    
+
+# Function to update the user's password
+def update_password(email, new_password):
+    try:
+        with psycopg2.connect(DB_CONNECTION_STRING) as conn:
+            with conn.cursor() as cur:
+                
+                query = """
+                    UPDATE Users
+                    SET password = %(param2)s
+                    WHERE email = %(param1)s;
+                """
+                cur.execute(query, ({'param1':email, 'param2': new_password}))
+                
+                return True
             
     except Exception:
         return False
