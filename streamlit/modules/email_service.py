@@ -5,7 +5,7 @@ import os
 import datetime
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
-from modules.database_handler import get_user_by_email
+from modules.database_handler import exists_user
 
 # Validate email format (lowercase only)
 def valid_email(email):
@@ -36,7 +36,7 @@ def send_otp_email(email, otp):
 
 # Initiate password reset
 def reset_password(email):
-    if get_user_by_email(email):
+    if exists_user(email):
         reset_link = generate_reset_link(email)
         send_reset_email(email, reset_link)
         return True

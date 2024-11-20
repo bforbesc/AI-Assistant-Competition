@@ -13,9 +13,6 @@ if 'authenticated' not in st.session_state:
 if 'professor' not in st.session_state:
     st.session_state['professor'] = False
 
-if 'reset_password' not in st.session_state:
-    st.session_state['reset_password'] = False
-
 if 'reset_email' not in st.session_state:
     st.session_state['reset_email'] = ""
 
@@ -24,12 +21,6 @@ if 'login_email' not in st.session_state:
 
 if 'login_password' not in st.session_state:
     st.session_state['login_password'] = ""
-
-if 'reset_link' not in st.session_state:
-    st.session_state['reset_link'] = False
-
-if 'login' not in st.session_state:
-    st.session_state['login'] = False
 
 if 'show_reset_form' not in st.session_state:
     st.session_state['show_reset_form'] = False
@@ -42,12 +33,17 @@ if 'show_reset_form' in query_params:
     st.session_state['show_reset_form'] = True
 
 # Main login section if the user is not logged in
-if not st.session_state.get('login'):
+if not st.session_state['authenticated']:
+
+    # Set session state value for email if not already set
+    if 'login_email' not in st.session_state:
+        st.session_state['login_email'] = ''  # or some default value
+
     st.markdown("# Login")
     
     # Input fields for email and password
-    email = st.text_input("Email", key="login_email", value=st.session_state['login_email'])
-    password = st.text_input("Password", type="password", key="login_password", value=st.session_state['login_password'])
+    email = st.text_input("Email", value=st.session_state['login_email'])
+    password = st.text_input("Password", type="password", value=st.session_state['login_password'])
 
     # Create columns to place the buttons
     col1, col2 = st.columns([3, 1])
@@ -66,16 +62,17 @@ if not st.session_state.get('login'):
     # If login button is pressed
     if login_button:
         # Hash password before authentication
-        hashed_password = hashlib.sha256(st.session_state['login_password'].encode()).hexdigest()
+        hashed_password = hashlib.sha256(password.encode()).hexdigest()
         
         # Authenticate user
-        if authenticate_user(st.session_state['login_email'], hashed_password):
-            st.session_state['authenticated'] = True
+        if authenticate_user(email, hashed_password):
+            st.session_state['login_email'] = email
+            st.session_state['login_password'] = password
             st.success("Login successful!")
             time.sleep(2)
             # Check if user is a professor
-            st.session_state['professor'] = is_professor(st.session_state['login_email'])
-            st.session_state['login'] = True
+            st.session_state['professor'] = is_professor(email)
+            st.session_state['authenticated'] = True
             st.rerun()  # Rerun the page after successful login
         else:
             st.error("Invalid email or password")
@@ -124,14 +121,26 @@ if not st.session_state.get('login'):
             if change_password_button:
                 if new_password and confirm_password:
                     if new_password == confirm_password:
-                        # Hash new password and update it
-                        hashed_new_password = hashlib.sha256(new_password.encode()).hexdigest()
-                        if update_password(st.session_state['reset_email'], hashed_new_password):
-                            st.success("Password successfully changed!")
-                            time.sleep(2)
-                            st.switch_page("0_Home.py")  # Redirect to home page
+                        # Check if password is strong
+                        if (len(new_password) >= 8 and
+                            any(char.isupper() for char in new_password) and
+                            any(char.islower() for char in new_password) and
+                            any(char.isdigit() for char in new_password) and
+                            any(char in '!@#$%^&*()-_=+[]{}|;:,.<>?/`~' for char in new_password)):
+
+                            # Hash and update password if strong
+                            hashed_password = hashlib.sha256(new_password.encode()).hexdigest()
+                            st.write(f"EMAIL: {st.session_state['reset_email']}")
+                            st.write(f"hashed_password: {hashed_password}")
+                            if update_password(st.session_state['reset_email'], hashed_password):
+                                st.success("Password successfully changed!")
+                                time.sleep(2)
+                                st.switch_page("0_Home.py")
+                            else:
+                                st.error("Failed to update password.")
                         else:
-                            st.error("An error occurred while updating the password.")
+                            st.error("Password must be at least 8 characters long and include an uppercase letter, \
+                                     a lowercase letter, a number, and a special character.")
                     else:
                         st.error("Passwords do not match. Please try again.")
                 else:
@@ -143,4 +152,17 @@ if not st.session_state.get('login'):
 
 else:
     # If the user is logged in, we provide the following content
+
+    # Create a sign-out button
+    _, _, col3 = st.columns([2, 8, 2])
+    with col3:
+        sign_out_btn = st.button("Sign Out", key="sign_out", use_container_width=True)
+
+        if sign_out_btn:
+            st.session_state.update({'authenticated': False})
+            st.session_state.update({'login_email': ""})
+            st.session_state.update({'login_password': ""})
+            time.sleep(2)
+            st.switch_page("0_Home.py")
+
     st.write("""This is the home page of the app where we will briefly explain what it consists of.""")

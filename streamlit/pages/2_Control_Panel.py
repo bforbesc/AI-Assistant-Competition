@@ -8,6 +8,19 @@ import pickle
 
 # Check if the user is logged in
 if st.session_state['authenticated']:
+
+    # Create a sign-out button
+    _, _, col3 = st.columns([2, 8, 2])
+    with col3:
+        sign_out_btn = st.button("Sign Out", key="sign_out", use_container_width=True)
+
+        if sign_out_btn:
+            st.session_state.update({'authenticated': False})
+            st.session_state.update({'login_email': ""})
+            st.session_state.update({'login_password': ""})
+            time.sleep(2)
+            st.switch_page("0_Home.py")  # Redirect to home page
+
     if st.session_state['professor']:
 
         # Markdown cheat sheet to help with formatting
@@ -253,5 +266,5 @@ if st.session_state['authenticated']:
 
 else:
     st.write(
-        """Please Login or Sign Up first (Page available only for Professors)"""
+        """Please Login first (Page available only for Professors)"""
     )

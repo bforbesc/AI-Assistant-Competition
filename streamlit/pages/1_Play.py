@@ -3,6 +3,18 @@ import streamlit as st
 # Check if the user is logged in
 if st.session_state['authenticated']:
 
+    # Create a sign-out button
+    _, _, col3 = st.columns([2, 8, 2])
+    with col3:
+        sign_out_btn = st.button("Sign Out", key="sign_out", use_container_width=True)
+
+        if sign_out_btn:
+            st.session_state.update({'authenticated': False})
+            st.session_state.update({'login_email': ""})
+            st.session_state.update({'login_password': ""})
+            time.sleep(2)
+            st.switch_page("0_Home.py")  # Redirect to home page
+
     st.markdown("# Play")
 
     if 'click' not in st.session_state:
@@ -13,7 +25,6 @@ if st.session_state['authenticated']:
 
     def onClickFunction():
         st.session_state.click = True
-
     def onStartFunction():
         st.session_state.start = True
     def offClickFunction():
@@ -51,5 +62,5 @@ if st.session_state['authenticated']:
 
 else:
     st.write(
-        """Please Login or Sign Up first"""
+        """Please Login first"""
     )
