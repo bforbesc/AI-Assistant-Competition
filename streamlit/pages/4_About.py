@@ -1,4 +1,5 @@
 import streamlit as st
+import time
 
 # Check if the user is logged in
 if st.session_state['authenticated']:

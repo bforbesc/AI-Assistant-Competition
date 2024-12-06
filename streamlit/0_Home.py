@@ -130,8 +130,6 @@ if not st.session_state['authenticated']:
 
                             # Hash and update password if strong
                             hashed_password = hashlib.sha256(new_password.encode()).hexdigest()
-                            st.write(f"EMAIL: {st.session_state['reset_email']}")
-                            st.write(f"hashed_password: {hashed_password}")
                             if update_password(st.session_state['reset_email'], hashed_password):
                                 st.success("Password successfully changed!")
                                 time.sleep(2)
