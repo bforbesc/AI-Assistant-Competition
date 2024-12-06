@@ -1,17 +1,23 @@
-
-# ----------------- IMPORTS ----------------- 
-
 import streamlit as st
 import pandas as pd
+import time
 from st_aggrid import GridOptionsBuilder, AgGrid, GridUpdateMode, ColumnsAutoSizeMode
-import pickle
+from modules.database_handler import remove_student, get_students_from_db, insert_student_data
 
-# Check if the user is logged in
+# ---------------------------- SET THE DEFAULT SESSION STATE FOR ALL CASES ------------------------------- #
+
+# Initialize session state for action selection
+if "action" not in st.session_state:
+    st.session_state.action = "Select Option"
+
+# -------------------------------------------------------------------------------------------------------- #
+
+# Check if the user is authenticated
 if st.session_state['authenticated']:
 
-    # Create a sign-out button
     _, _, col3 = st.columns([2, 8, 2])
     with col3:
+        # Sign out button
         sign_out_btn = st.button("Sign Out", key="sign_out", use_container_width=True)
 
         if sign_out_btn:
@@ -21,243 +27,269 @@ if st.session_state['authenticated']:
             time.sleep(2)
             st.switch_page("0_Home.py")  # Redirect to home page
 
+    # Check if the user is a professor
     if st.session_state['professor']:
 
-        # Markdown cheat sheet to help with formatting
-        # https://www.markdownguide.org/basic-syntax/
+        # ----------------------------------------------------------- FUNCTIONS -------------------------------------------------------------- #
 
-
-        # ----------------- FUNCTIONS ----------------- 
-
-        # Function to speed testing add a student (no inputs)
-        def add_student():
-            un = chr(ord(st.session_state.students["Username"].tolist()[-1])+1)
-            input = pd.DataFrame({"User ID": [max(st.session_state.students["User ID"]) + 1],
-                                    "Username": [un], 
-                                    "Email": [un+"@student.com"],
-                                    "Created at": [pd.Timestamp.now().strftime("%d-%m-%Y")]})
-            st.session_state.students = pd.concat([st.session_state.students, input])
-            st.session_state.add_student_button = False
-            st.rerun()
-
-        # function with inputs    
-        # def add_student():
-        #     st.write("Add Student")
-        #     username = st.text_input("Enter Username")
-        #     email = st.text_input("Enter Email")
-        #     if st.button("Add"):
-        #         input = pd.DataFrame({"User ID": [max(st.session_state.students["User ID"]) + 1], # Automatically generate User ID
-        #                                 "Username": [username], # Get Username from input
-        #                                 "Email": [email], # Get Email from input
-        #                                 "Created at": [pd.Timestamp.now().strftime("%d-%m-%Y")]}) # Automatically generate Created at
-        #         st.session_state.students = pd.concat([st.session_state.students, input])
-        #         st.session_state.add_student_button = False
-        #         st.rerun()
+        # Function to add students from a CSV file
+        def add_students_from_csv(file):
+            try:
+                # Read CSV with a semicolon delimiter
+                df = pd.read_csv(file, sep=';', dtype={'OTP': str, 'academic year': str})
                 
-        def remove_student(user_id):
-            st.session_state.students = st.session_state.students[st.session_state.students["User ID"] != user_id]
-            st.rerun()
+                # Check if all required columns exist in the CSV
+                if 'userID' not in df.columns or 'email' not in df.columns or 'OTP' not in df.columns or 'academic year' \
+                    not in df.columns or 'class' not in df.columns:
+                    st.error("CSV must contain 'userID', 'email', 'OTP', 'academic year' and 'class' columns.")
+                    return
+                
+                # Insert student data row by row
+                for _, row in df.iterrows():
+                    userID = row['userID']
+                    email = row['email']
+                    otp = row['OTP']
+                    academic_year = row['academic year']
+                    class_ = row['class']
 
+                    if insert_student_data(userID, email, otp, academic_year, class_):
+                        continue
+                    else:
+                        return False
+                return True
+                
+            except Exception:
+                st.error("Error processing the CSV file. Please try again.")
+
+        # Function to display the student table with selectable rows
         def show_student_table():
-            gb = GridOptionsBuilder.from_dataframe(st.session_state.students[["User ID", "Username", "Email", "Created at"]])
-            gb.configure_selection(selection_mode="single", use_checkbox=True)
-            gb.configure_column("User ID", "ID", width=50, resizable=False)
-            gb.configure_column("Created at", width=75, resizable=False)
-            gridOptions = gb.build()
-            # save grid options in an external variable
+            # Fetch data from the database
+            students_from_db = get_students_from_db()
             
-            # with open("data.pkl", "wb") as f:
-            #     pickle.dump(gridOptions, f)
-            data = AgGrid(st.session_state.students[["User ID", "Username", "Email", "Created at"]],
+            # Rename columns for display
+            students_display = students_from_db.rename(columns={
+                "userID": "User ID",
+                "email": "Email",
+                "academic_year": "Academic Year",
+                "class": "Class",
+                "timestamp_user": "Created at"
+            })
+            
+            # Update session state with the dataset
+            st.session_state.students = students_display
+
+            # Add a "Select" column for row checkboxes
+            students_display[""] = ""
+            
+            ## Configure grid options
+            gb = GridOptionsBuilder.from_dataframe(students_display[["", "User ID", "Email", "Academic Year", "Class", "Created at"]])
+           
+            gb.configure_column("", checkboxSelection=True, width=60)
+            gb.configure_column("User ID", width=120)
+            gb.configure_column("Email", width=200)
+            gb.configure_column("Academic Year", width=160)
+            gb.configure_column("Class", width=80)
+            gb.configure_column("Created at", width=150)
+            
+            gridOptions = gb.build()
+
+            # Display the table
+            data = AgGrid(students_display[["", "User ID", "Email", "Academic Year", "Class", "Created at"]],
                         gridOptions=gridOptions,
                         fit_columns_on_grid_load=True,
-                        height=min(36+27*st.session_state.students.shape[0],300),
+                        height=min(36 + 27 * students_display.shape[0], 300),
                         update_mode=GridUpdateMode.SELECTION_CHANGED,
                         columns_auto_size_mode=ColumnsAutoSizeMode.FIT_CONTENTS)
             return data
 
-        def show_student(selected_rows):
-            col1, col2, col3, col4 = st.columns(4)
+        # ------------------------------------------------------------------------------------------------------------------------------------ # 
 
-            with col1:
-                st.markdown("##### ID")
-                st.markdown(f":orange[{selected_rows['User ID'].tolist()[0]}]")
-            with col2:
-                st.markdown("##### Name")
-                st.markdown(f":orange[{selected_rows['Username'].tolist()[0]}]")
-            with col3:
-                st.markdown("##### Email")
-                st.markdown(f":orange[{selected_rows['Email'].tolist()[0]}]")
-            with col4:
-                st.markdown("##### Created at")
-                st.markdown(f":orange[{selected_rows['Created at'].tolist()[0]}]")
+        # Handle different actions for the professor
+        if st.session_state.action == "Select Option":
+            st.header("Select Option")
+            st.write("Welcome, Professor! Please select an option")
 
-        # ------------- DEFINE VARIABLES ------------- 
-
-        PROFESSOR_PASSWORD = "ProfessorRodrigo"
-
-        button_1 = "Back to Options" # button name for back to options
-        button_2 = "Back to Student Management" # button name for back to student management
-
-        # ------- SET THE DEFAULT SESSION STATE ------- 
-
-        if "action" not in st.session_state:
-            st.session_state.action = "Student Management" # currently set to "Student Management" for speed testing (default is "Select Option")
-        if "professor_authenticated" not in st.session_state:
-            st.session_state.professor_authenticated = True # currently set to True for speed testing (default is False)
-        if "add_student_button" not in st.session_state:
-            st.session_state.add_student_button = False
-        if "see_student" not in st.session_state:
-            st.session_state.see_student = False
-        if "selected_student" not in st.session_state:
-            st.session_state.selected_student = None
-        if "students" not in st.session_state:
-            st.session_state.students = pd.DataFrame({"User ID": [1, 2], 
-                                                    "Username": ["a", "b"], 
-                                                    "Email": ["a@student.com", "b@student.com"], 
-                                                    "Created at": ["01-10-2024", "02-10-2024"]
-                                                    })
-
-        # ----------------- PROFESSOR PAGE ----------------- 
-
-        st.set_page_config(page_title='Control Panel')
-
-        st.title("Professor Page")
-        # Checks passwaord
-        if not st.session_state.professor_authenticated:
-            # Ask for password
-            password = st.text_input("Enter Password", type="password")
-            if st.button("Login"):
-                if password == PROFESSOR_PASSWORD:
-                    st.session_state.professor_authenticated = True
-                    # st.success("Login successful!")
-                    st.rerun()
-                else:
-                    st.error("Invalid password!")
+            # Action selection dropdown
+            c1,_= st.columns([3,2])
+            st.session_state.action = c1.selectbox("Select Option", ["Student Management", "Game Configuration", "Game Results", 
+                                                    "Leaderboard and Performance", "Game Data Management", "Security"])
+            if st.button("Select"):
+                st.rerun()
         else:
-            # Allow professor to access the page if authenticated
-            if st.session_state.action == "Select Option":
-                st.header("Select Option")
-                st.write("Welcome, Professor! Please select an option")
-                # Allow professor to choose next action
-                c1,_= st.columns([3,2])
-                st.session_state.action = c1.selectbox("Select Option", ["Select Option", "Student Management", "Game Configuration", "Game Results", 
-                                                        "Leaderboard and Performance", "Game Data Management", "Security", "Logout"])
-                if st.button("Select"):
-                    st.rerun()
-            else:
-                st.header(st.session_state.action)
-                # Implement the selected action
-                match st.session_state.action:
-                    case "Student Management": # Allow professor to add students, assign students to games and track student activity
-                        
-                        if st.session_state.see_student:
-                            st.write("Student Information")
-                            show_student(st.session_state.selected_student)
-                            if st.button(button_2): # Return to student management
-                                st.session_state.see_student = False
-                                st.rerun()
-                        else:
-                            data = show_student_table()
-                            st.session_state.selected_student = data["selected_rows"]
-                            c1, c2, c3 = st.columns([1,1,2])
-                            if (c1.button("Add Student") or st.session_state.add_student_button):
-                                st.session_state.add_student_button = True
-                                st.session_state.remove_student_button = False
-                                add_student()
-                            if c2.button("Remove Student"):
-                                if st.session_state.students.empty:
-                                    st.error("No students found. Please add a student.")
-                                else:
-                                    if st.session_state.selected_student is not None:
-                                        if len(st.session_state.selected_student) != 0:
-                                            st.session_state.add_student_button = False
-                                            remove_student(st.session_state.selected_student['User ID'].tolist()[0])
-                                    else:
-                                        st.warning("Please select a student to remove.")
-                            if c3.button("See Student"):
-                                if st.session_state.students.empty:
-                                    st.error("No students found. Please add a student.")
-                                else:
-                                    if st.session_state.selected_student is not None:
-                                        if len(st.session_state.selected_student) != 0:
-                                            st.session_state.add_student_button = False
-                                            st.session_state.see_student = True
-                                            st.rerun()
-                                    else:
-                                        st.warning("Please select a student to see.")
-                                
-                        if st.button(button_1):
-                            st.session_state.action = "Select Option"
-                            st.rerun()
-                    case "Game Configuration": # Allow professor to choose a game and set the configurations
+            # Render the selected action
+            st.header(st.session_state.action)
+            
+            # Define behavior for "Student Management"
+            match st.session_state.action:
 
-                        game_types = ["Select Game", "Ultimatum Game", "Prisoner's Dilemma", "Trust Game"]
-                        game_type = st.selectbox("Select Game Type", game_types)
-                        match game_type:
-                            case "Ultimatum Game":
-                                st.write("Ultimatum Game settings:")
-                                rounds = st.number_input("Number of Rounds:", min_value=1, step=1)
-                                # Save settings in session state
-                                if st.button("Set Game Settings"):
-                                    st.session_state.game_settings = {
-                                        "game_type": game_type,
-                                        "rounds": rounds
-                                    }
-                                    st.success("Game settings updated!")
-                            case "Prisoner's Dilemma":
-                                st.write("Prisoner's Dilemma settings:")
-                                rounds = st.number_input("Number of Rounds:", min_value=1, step=1)
-                                # Save settings in session state
-                                if st.button("Set Game Settings"):
-                                    st.session_state.game_settings = {
-                                        "game_type": game_type,
-                                        "rounds": rounds
-                                    }
-                                    st.success("Game settings updated!")
-                            case "Trust Game":
-                                st.write("Trust Game settings:")
-                                rounds = st.number_input("Number of Rounds:", min_value=1, step=1)
-                                # Save settings in session state
-                                if st.button("Set Game Settings"):
-                                    st.session_state.game_settings = {
-                                        "game_type": game_type,
-                                        "rounds": rounds
-                                    }
-                                    st.success("Game settings updated!")
-                            case _:
-                                st.write("Select a game type")
-                            
-                        if st.button(button_1): # Return to options
+                case "Student Management": # Allow professor to add students, assign students to games and track student activity
+                    
+                    # ---------------------------- SET THE DEFAULT SESSION STATE FOR STUDENT MANAGEMENT ------------------------------- #
+
+                    if "add_students" not in st.session_state:
+                        st.session_state.add_students = False
+                    if "add_student" not in st.session_state:
+                        st.session_state.add_student = False
+                    if "remove_student" not in st.session_state:
+                        st.session_state.remove_student = False
+                    if "selected_student" not in st.session_state:
+                        st.session_state.selected_student = None
+                    if "students" not in st.session_state:
+                        st.session_state.students = pd.DataFrame(columns=["User ID", "Email", "Academic Year", "Class", "Created at"])
+
+                    # ----------------------------------------------------------------------------------------------------------------- #
+
+                    # Display the student table
+                    data = show_student_table()
+                    st.session_state.selected_student = data["selected_rows"]
+
+                    # Action buttons
+                    col1, col2, col3, col4 = st.columns([1,1,1,2])
+
+                    with col1:
+                        if st.button("⬅ Back"):
                             st.session_state.action = "Select Option"
                             st.rerun()
-                    case "Game Results":
-                        st.write("To be implemented")
-                        if st.button(button_1): # Return to options
-                            st.session_state.action = "Select Option"
-                            st.rerun()
-                    case "Leaderboard and Performance":
-                        st.write("To be implemented")
-                        if st.button(button_1): # Return to options
-                            st.session_state.action = "Select Option"
-                            st.rerun()
-                    case "Game Data Management":
-                        st.write("To be implemented")
-                        if st.button(button_1): # Return to options
-                            st.session_state.action = "Select Option"
-                            st.rerun()
-                    case "Security":
-                        st.write("To be implemented")
-                        if st.button(button_1): # Return to options
-                            st.session_state.action = "Select Option"
-                            st.rerun()
-                    case "Logout":
-                        st.session_state.professor_authenticated = False
-                        st.session_state.action = "Select Option"
-                        # st.success("Logged out successfully!") 
+                    with col2:
+                        if st.button("Add Students", key="add_students_via_csv"):
+                            st.session_state.add_students = True
+                    with col3:
+                        if st.button("Add Student", key="add_student_manually"):
+                            st.session_state.add_student = True
+                    with col4:
+                        if st.button("Remove Student", key="remove_student_manually"):
+                            st.session_state.remove_student = True
+
+                    # Handle adding students via CSV
+                    if st.session_state.add_students:
+                        with st.form("add_students_form", clear_on_submit=True):
+                            uploaded_file = st.file_uploader("Upload CSV with Email and OTP", type=["csv"])
+                            submit_button = st.form_submit_button("Add Students")
+
+                            if submit_button:
+                                if uploaded_file is not None:
+                                    if add_students_from_csv(uploaded_file):
+                                        st.success("Students added successfully!")
+                                    else:
+                                        st.error("An error occurred when adding the students. Please try again.")
+                                else:
+                                    st.error("Please upload a valid CSV file.")
+                                st.session_state.add_students = False
+                                st.session_state.action = "Student Management"
+                                time.sleep(2)
+                                st.rerun()
+
+                    # Handle manual student addition
+                    if st.session_state.add_student:
+                        with st.form("add_student_form", clear_on_submit=True):
+                            userID = st.text_input("Introduce User ID:")
+                            email = st.text_input("Introduce Email:")
+                            otp = st.text_input("Introduce OTP:")
+                            academic_year = st.text_input("Introduce academic year:")
+                            class_ = st.text_input("Introduce class:")
+                            submit_button = st.form_submit_button("Add Student")
+
+                            if submit_button:
+                                if not userID or not email or not otp or not academic_year or not class_:
+                                    st.error("Please fill in all fields.")
+                                else:
+                                    if insert_student_data(userID, email, otp, academic_year, class_):
+                                        st.success("Student added successfully!")
+                                    else:
+                                        st.error("Failed to add student. Please try again.")
+                                    st.session_state.add_student = False
+                                    st.session_state.action = "Student Management"
+                                    time.sleep(2)
+                                    st.rerun()
+
+                    # Handle student removal
+                    if st.session_state.remove_student:
+                        if st.session_state.students.empty:
+                            st.warning("No students found. Please add a student.")
+                        else:
+                            if st.session_state.selected_student is not None:
+                                if len(st.session_state.selected_student) != 0:
+                                    userID = st.session_state.selected_student['User ID'].tolist()[0]
+                                    if remove_student(userID):
+                                        st.success("Student removed successfully!")
+                                        st.session_state.students = st.session_state.students[st.session_state.students["User ID"] != userID]
+                                    else:
+                                        st.error("Failed to remove student. Please try again.")
+                            else:
+                                st.warning("Please select a student to remove.")
+                        st.session_state.remove_student = False
+                        st.session_state.action = "Student Management"
+                        time.sleep(2)
                         st.rerun()
-                    case _:
-                        st.header("Select Option")
+
+                case "Game Configuration": # Allow professor to choose a game and set the configurations
+
+                    game_types = ["Select Game", "Ultimatum Game", "Prisoner's Dilemma", "Trust Game"]
+                    game_type = st.selectbox("Select Game Type", game_types)
+                    match game_type:
+                        case "Ultimatum Game":
+                            st.write("Ultimatum Game settings:")
+                            rounds = st.number_input("Number of Rounds:", min_value=1, step=1)
+                            # Save settings in session state
+                            if st.button("Set Game Settings"):
+                                st.session_state.game_settings = {
+                                    "game_type": game_type,
+                                    "rounds": rounds
+                                }
+                                st.success("Game settings updated!")
+                        case "Prisoner's Dilemma":
+                            st.write("Prisoner's Dilemma settings:")
+                            rounds = st.number_input("Number of Rounds:", min_value=1, step=1)
+                            # Save settings in session state
+                            if st.button("Set Game Settings"):
+                                st.session_state.game_settings = {
+                                    "game_type": game_type,
+                                    "rounds": rounds
+                                }
+                                st.success("Game settings updated!")
+                        case "Trust Game":
+                            st.write("Trust Game settings:")
+                            rounds = st.number_input("Number of Rounds:", min_value=1, step=1)
+                            # Save settings in session state
+                            if st.button("Set Game Settings"):
+                                st.session_state.game_settings = {
+                                    "game_type": game_type,
+                                    "rounds": rounds
+                                }
+                                st.success("Game settings updated!")
+                        case _:
+                            st.write("Select a game type")
+                        
+                    if st.button("⬅ Back"): # Return to options
+                        st.session_state.action = "Select Option"
+                        st.rerun()
+
+                case "Game Results":
+                    st.write("To be implemented")
+                    if st.button("⬅ Back"): # Return to options
+                        st.session_state.action = "Select Option"
+                        st.rerun()
+
+                case "Leaderboard and Performance":
+                    st.write("To be implemented")
+                    if st.button("⬅ Back"): # Return to options
+                        st.session_state.action = "Select Option"
+                        st.rerun()
+
+                case "Game Data Management":
+                    st.write("To be implemented")
+                    if st.button("⬅ Back"): # Return to options
+                        st.session_state.action = "Select Option"
+                        st.rerun()
+
+                case "Security":
+                    st.write("To be implemented")
+                    if st.button("⬅ Back"): # Return to options
+                        st.session_state.action = "Select Option"
+                        st.rerun()
+
+                case _:
+                    st.header("Select Option")
 
     else:
         st.write(
