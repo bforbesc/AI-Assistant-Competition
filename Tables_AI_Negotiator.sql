@@ -31,6 +31,7 @@ CREATE TABLE game (
     game_id SERIAL,                                              -- Unique identifier for each game, auto-incremented, not null
     game_name VARCHAR(100) NOT NULL,                             -- Name of the game, cannot be null
     number_of_rounds SMALLINT NOT NULL,                          -- Number of rounds in the game, cannot be null
+    num_inputs SMALLINT NOT NULL,                                -- Number of input boxes in the game, cannot be null
     timestamp_game TIMESTAMP DEFAULT CURRENT_TIMESTAMP,          -- Timestamp of game creation, defaults to the current time
     PRIMARY KEY(game_id)                                         -- Set game_id as the primary key
     -- Every game must exist in the table 'plays'
