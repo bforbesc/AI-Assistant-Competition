@@ -7,9 +7,6 @@ from modules.database_handler import update_password, get_userID_by_email
 if 'password_edit_mode' not in st.session_state:
     st.session_state['password_edit_mode'] = False
 
-if 'userID' not in st.session_state:
-    st.session_state['userID'] = ""
-
 if 'show_password' not in st.session_state:
     st.session_state['show_password'] = False  # Track password visibility state
 
@@ -36,14 +33,13 @@ if st.session_state['authenticated']:
     if selection == 'Personal Data':
         # Display email
         email = st.session_state['login_email']
-        
         st.markdown(f"<h3 style='font-size: 24px;'>Email</h3>", unsafe_allow_html=True)
         st.write(f"{email}")
+
         # Display userID
+        userID = st.session_state['userID']
         st.markdown(f"<h3 style='font-size: 24px;'>userID</h3>", unsafe_allow_html=True)
-        # col1, col2, _, _, _, _, _ = st.columns([4, 1, 1, 1, 1, 1, 1])  # Adjusted to align with password layout
-        # with col1:
-        userID = get_userID_by_email(email)  # Default to empty if no userID is found
+        st.write(f"{userID}")
 
         # Display password with eye and edit pencil buttons
         st.markdown(f"<h3 style='font-size: 24px;'>Password</h3>", unsafe_allow_html=True)
