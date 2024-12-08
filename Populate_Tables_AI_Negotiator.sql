@@ -1,3 +1,7 @@
+----------------------------------------------------------------------------------------------------------------------------------------------
+---------------------------------------------------------- INSERT USERS ----------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------------------------------------------------
+
 -- Inserting Ricardo Almeida (for testing)
 INSERT INTO user_ (userID, email, password, academic_year, class) 
 VALUES ('nova199317', 'ricardo.almeida2210@gmail.com', '<hashed_password_for_ricardo>', 2024, 'A');
@@ -21,6 +25,10 @@ VALUES ('nova199032', 'rodrigo.belo@novasbe.pt', '<hashed_password_for_rodrigo>'
 -- Inserting Lénia Mestrinho
 INSERT INTO user_ (userID, email, password, academic_year, class)
 VALUES ('nova196331', 'lenia.mestrinho@novasbe.pt', '<hashed_password_for_lenia>', 2000, 'A');
+
+----------------------------------------------------------------------------------------------------------------------------------------------
+---------------------------------------------- INSERT PROFESSORS -----------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------------------------------------------------
 
 -- Inserting Ricardo Almeida into professor's table (for testing)
 INSERT INTO professor (userID, permission_level) 
