@@ -44,6 +44,7 @@ CREATE TABLE game (
 -- plays table
 CREATE TABLE plays (
     userID VARCHAR(50),                                                   -- Unique userID (university ID), cannot be null
+    group_id SMALLINT NOT NULL,                                           -- The groupID of the student, cannot be null
     game_id SERIAL,                                                       -- Unique identifier for each game, auto-incremented, not null
     PRIMARY KEY(userID, game_id),                                         -- Set userID and game_id as a composite primary key
     FOREIGN KEY(userID) REFERENCES user_(userID),                         -- Foreign key linking to the userID in the user table

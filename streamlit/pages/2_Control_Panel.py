@@ -17,6 +17,26 @@ if "action" not in st.session_state:
 if "back_button" not in st.session_state:
     st.session_state.back_button = False
 
+# -------------------- SET THE DEFAULT SESSION STATE FOR STUDENT MANAGEMENT CASE ------------------------- #
+
+if "add_students" not in st.session_state:
+    st.session_state.add_students = False
+if "add_student" not in st.session_state:
+    st.session_state.add_student = False
+if "remove_student" not in st.session_state:
+    st.session_state.remove_student = False
+if "selected_student" not in st.session_state:
+    st.session_state.selected_student = None
+if "students" not in st.session_state:
+    st.session_state.students = pd.DataFrame(columns=["User ID", "Email", "Academic Year", "Class", "Created at"])
+
+# ----------------------- SET THE DEFAULT SESSION STATE FOR AVAILABLE GAMES CASE ------------------------- #
+
+if "edit_game" not in st.session_state:
+    st.session_state.edit_game = False
+if "game_id" not in st.session_state:
+    st.session_state.game_id = ""
+
 # -------------------------------------------------------------------------------------------------------- #
 
 # Check if the user is authenticated
@@ -27,8 +47,11 @@ if st.session_state['authenticated']:
         if st.session_state.back_button:
             # Back button
             if st.button("⬅ Back"):
-                st.session_state.back_button = False
-                st.session_state.action = "Select Option"
+                if st.session_state.edit_game:
+                    st.session_state.edit_game = False
+                else:
+                    st.session_state.back_button = False
+                    st.session_state.action = "Select Option"
                 st.rerun()
     with col3:
         # Sign out button
@@ -66,21 +89,6 @@ if st.session_state['authenticated']:
             match st.session_state.action:
 
                 case "Student Management": # Allow professor to add students, assign students to games and track student activity
-                    
-                    # ---------------------------- SET THE DEFAULT SESSION STATE FOR STUDENT MANAGEMENT ------------------------------- #
-
-                    if "add_students" not in st.session_state:
-                        st.session_state.add_students = False
-                    if "add_student" not in st.session_state:
-                        st.session_state.add_student = False
-                    if "remove_student" not in st.session_state:
-                        st.session_state.remove_student = False
-                    if "selected_student" not in st.session_state:
-                        st.session_state.selected_student = None
-                    if "students" not in st.session_state:
-                        st.session_state.students = pd.DataFrame(columns=["User ID", "Email", "Academic Year", "Class", "Created at"])
-
-                    # ----------------------------------------------------------------------------------------------------------------- #
 
                     # --------------------------------------------------- FUNCTIONS --------------------------------------------------- #
 
@@ -240,11 +248,11 @@ if st.session_state['authenticated']:
                 case "Game Configuration": # Allow professor to create a game
 
                     # Handle manual game creation
-                    with st.form("game_configuration_form"):
+                    with st.form("game_configuration_form", clear_on_submit=True):
                         game_name = st.text_input("Game Name", max_chars=100, key="game_name")
                         game_explanation = st.text_area("Game Explanation", key="explanation")
                         number_of_rounds = st.number_input("Number of Rounds", min_value=1, step=1, key="number_of_rounds")
-                        num_inputs = st.number_input("Number of Input Boxes", min_value=1, step=1, key="num_inputs")
+                        num_inputs = st.number_input("Number of Input Boxes", min_value=1, max_value=2, step=1, key="num_inputs")
                         password = st.text_input("Game Password (4-digit)", type="password", max_chars=4, key="password")
                         deadline_date = st.date_input("Submission Deadline Date", key="deadline_date")
                         deadline_time = st.time_input("Submission Deadline Time", key="deadline_time")
@@ -286,15 +294,6 @@ if st.session_state['authenticated']:
                             st.rerun()
 
                 case "Available Games": # Allow professor to see and edit the available games
-
-                    # ------------------------- SET THE DEFAULT SESSION STATE FOR AVAILABLE GAMES ---------------------------- #
-
-                    if "edit_game" not in st.session_state:
-                        st.session_state.edit_game = False
-                    if "game_id" not in st.session_state:
-                        st.session_state.game_id = ""
-
-                    # -------------------------------------------------------------------------------------------------------- #
 
                     # ------------------------------------------ FUNCTIONS --------------------------------------------------- #
 
