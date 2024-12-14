@@ -79,6 +79,42 @@ def fetch_games_data():
     
     except Exception:
         return []
+    
+# Function to fetch current (or past) games data by userID
+def fetch_current_games_data_by_userID(sign, user_id):
+    try:
+        with psycopg2.connect(DB_CONNECTION_STRING) as conn:
+            with conn.cursor() as cur:
+
+                query = f"""
+                        SELECT * FROM game g
+                        JOIN plays p ON g.game_id = p.game_id
+                        WHERE (p.userID = '{user_id}'
+                        AND CURRENT_TIMESTAMP {sign} g.timestamp_submission_deadline);"""
+        
+                cur.execute(query)
+
+                games_data = cur.fetchall()
+                if games_data:
+                    games = []
+                    for row in games_data:
+                        game = {
+                            "game_id": row[0],
+                            "created_by": row[1],
+                            "game_name": row[2],
+                            "number_of_rounds": row[3],
+                            "num_inputs": row[4],
+                            "password": row[5],
+                            "timestamp_game_creation": row[6],
+                            "timestamp_submission_deadline": row[7]
+                        }
+                        games.append(game)
+            
+                    return games
+                return []
+    
+    except Exception:
+        return []
 
 # Function to retrieve the last gameID from the database and increment it
 def get_next_game_id():
@@ -150,6 +186,37 @@ def store_game_in_db(created_by, game_name, number_of_rounds, num_inputs, passwo
 
                 return True
             
+    except Exception:
+        return False
+    
+# Function to get the id of the group from game_id and user_id
+def get_group_id_from_game_id_and_user_id(game_id, user_id):
+    try:
+        with psycopg2.connect(DB_CONNECTION_STRING) as conn:
+            with conn.cursor() as cur:
+
+                query = f"SELECT group_id FROM plays WHERE (game_id = {game_id} AND userID = '{user_id}');"
+                cur.execute(query)
+                group_id = cur.fetchone()[0]
+
+                return group_id
+
+    except Exception:
+        return False
+
+# Function to get the id of the professor that created the game
+def get_professor_id_from_game_id(game_id):
+    try:
+        with psycopg2.connect(DB_CONNECTION_STRING) as conn:
+            with conn.cursor() as cur:
+
+                query = f"SELECT created_by FROM game WHERE game_id = {game_id};"
+
+                cur.execute(query)
+                professor_id = cur.fetchone()[0]
+
+                return professor_id
+
     except Exception:
         return False
 
@@ -256,7 +323,6 @@ def is_valid_professor_email(email):
     except Exception:
         return False
 
-
 # Function to validate if the user that logged in is a Professor
 def is_professor(email):
     try:
@@ -281,7 +347,6 @@ def is_professor(email):
     except Exception:
         return False
 
-
 # Function to see if exists the user
 def exists_user(email):
     try:
@@ -305,7 +370,6 @@ def exists_user(email):
     except Exception:
         return False
     
-
 # Function to update the user's password
 def update_password(email, new_password):
     try:
