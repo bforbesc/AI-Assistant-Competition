@@ -1,43 +1,26 @@
 import streamlit as st
-import time
-from modules.database_handler import fetch_games_data
-from modules.drive_file_manager import get_text_from_file
+import time 
+from datetime import datetime as dt
+from modules.database_handler import fetch_current_games_data_by_userID, get_professor_id_from_game_id, get_group_id_from_game_id_and_user_id
+from modules.drive_file_manager import get_text_from_file, overwrite_text_file
 
 # ------------------------ SET THE DEFAULT SESSION STATE FOR THE PLAY SECTION ---------------------------- #
 
-# Initialize session state for game selection
-if "game_selection" not in st.session_state:
-    st.session_state.game_selection = "Select a Game"
-
-# Initialize session state for show game
-if "show_game" not in st.session_state:
-    st.session_state.show_game = 0
-
-# Initialize session state for back button
-if "back_button" not in st.session_state:
-    st.session_state.back_button = False
-
 # Initialize session state for show password form
-if "show_password_form" not in st.session_state:
-    st.session_state.show_password_form = False
+if "show_game_password_form" not in st.session_state:
+    st.session_state.show_game_password_form = True
 
 # -------------------------------------------------------------------------------------------------------- #
+
+@st.cache_resource
+def get_text_from_file_aux(professor_id, game_id, timestamp):
+    text = get_text_from_file(f"{professor_id}_{game_id}_{timestamp}.txt")
+    return text
 
 # Check if the user is authenticated
 if st.session_state['authenticated']:
 
     col1, _, col3 = st.columns([2, 8, 2])
-    with col1:
-        if st.session_state.back_button:
-            # Back button
-            if st.button("⬅ Back"):
-                if st.session_state.show_game:
-                    st.session_state.show_password_form = False
-                    st.session_state.show_game = False
-                else:
-                    st.session_state.back_button = False
-                    st.session_state.game_selection = "Select a Game"
-                st.rerun()
     with col3:
         # Sign out button
         sign_out_btn = st.button("Sign Out", key="sign_out", use_container_width=True)
@@ -46,78 +29,110 @@ if st.session_state['authenticated']:
             st.session_state.update({'authenticated': False})
             st.session_state.update({'login_email': ""})
             st.session_state.update({'login_password': ""})
+            st.session_state.show_game_password_form = True
             time.sleep(2)
             st.switch_page("0_Home.py")  # Redirect to home page
+    
+    option = st.sidebar.radio("See:", ('Current Games', 'Past Games'),horizontal=True)
 
     # Fetch the list of games from the database
-    games = fetch_games_data()
+    if option == 'Current Games':
+        games = fetch_current_games_data_by_userID('<', st.session_state.userID)
+        if games != []:
 
-    if games != []:
-        if not st.session_state.show_game:
-            if st.session_state.game_selection == "Select a Game":
+                    # Streamlit sidebar selectbox for games
+                    game_names = [game['game_name'] for game in games]
+                    selected_game_name = st.sidebar.selectbox("Select Game", game_names)
 
-                st.header("Select a Game")
-
-                # Streamlit sidebar selectbox for games
-                game_names = [game['game_name'] for game in games]
-                # Action selection dropdown
-                c1, _ = st.columns([3, 2])
-                selected_game_name = c1.selectbox("Select a Game", game_names)
-
-                if st.button("Show"):
-                    st.session_state.back_button = True
-                    st.session_state.game_selection = selected_game_name
-                    st.rerun()
-            else:
-                st.markdown(f'## {st.session_state.game_selection}')
-                with st.expander("Explanation"):
-                    #st.write(f'Here an explanation of {selected_game_name} will be provided.')
+                    st.markdown(f'## {selected_game_name}')
 
                     # Find the selected game
-                    selected_game = next((game for game in games if game['game_name'] == st.session_state.game_selection), None)
+                    selected_game = next((game for game in games if game['game_name'] == selected_game_name), None)
 
-                    # Retrieve user ID from session state
-                    user_id = st.session_state.get('userID')
+                    with st.expander("Explanation"):
 
-                    # Get the Game explanation from Google Drive using the filename
-                    game_explanation = get_text_from_file(f"{user_id}_{selected_game['game_id']}_{selected_game['timestamp_game_creation']}.txt")
-                    if game_explanation:
-                        st.write(f"{game_explanation}")
-                    else:
-                        st.write("No explanation found for this game.")
-                with st.expander("Game details"):
-                    st.write(f"**Number of Rounds**: {selected_game['number_of_rounds']}")
-                    st.write(f"**Number of Inputs**: {selected_game['num_inputs']}")
+                        # Retrieve the game ID and professor ID of the game
+                        game_id = selected_game['game_id']
+                        professor_id = get_professor_id_from_game_id(game_id)
+    
+                        # Get the Game explanation from Google Drive using the filename
+                        game_explanation = get_text_from_file_aux(professor_id, game_id, selected_game['timestamp_game_creation'])
+                        if game_explanation:
+                            st.write(f"{game_explanation}")
+                        else:
+                            st.write("No explanation found for this game.")
 
-                with st.expander("Submission Deadline"):
-                    st.write(f"{selected_game['timestamp_submission_deadline']}")
+                    with st.expander("Submission Deadline"):
+                        st.write(f"{selected_game['timestamp_submission_deadline']}")
 
-                if st.button("Play"):
-                    st.session_state.show_password_form = True
+                    if st.session_state.show_game_password_form == True:
+                        with st.form("insert_password_form"):
+                            st.write("Please introduce the Password to play this Game.")
+                            password_input = st.text_input("Enter the Game Password", type="password", key="game_password_input")
+                            
+                            play_now_btn = st.form_submit_button("Play now!")
 
-                if st.session_state.show_password_form:
-                    with st.form("insert_password_form"):
-                        st.write("Please introduce the Password to play this Game.")
-                        password_input = st.text_input("Enter the Game Password", type="password", key="game_password_input")
+                            if play_now_btn:
+                                if selected_game['password'] == password_input:
+                                    st.success("Correct Password.")
+                                    st.session_state.show_game_password_form = False
+                                    time.sleep(2)
+                                    st.rerun()
+
+                                else:
+                                    st.error("Incorrect Password. Please try again.")
+                            
+                    if st.session_state.show_game_password_form == False:
+
+                        st.write('')
+
+                        group_id = get_group_id_from_game_id_and_user_id(game_id, st.session_state['userID'])
                         
-                        play_now_btn = st.form_submit_button("Play now!")
+                        # Case where number of inputs is 1
+                        if selected_game['num_inputs']==1:
+                            with st.form(key='form_1_input'):
+                                text_area = st.text_area('Your Prompt', help='A good prompt should be clear, specific, and provide enough context and detail about your position, interests, and desired outcomes.')
+                                submit_button = st.form_submit_button('Submit')
 
-                        if play_now_btn:
-                            if selected_game['password'] == password_input:
-                                st.success("Correct Password.")
-                                st.session_state.show_game = selected_game['game_id']
-                                st.session_state.back_button = True
+                            if submit_button:
+                                prompt = text_area
+                                overwrite_text_file(prompt, f"Game{game_id}_Group{group_id}_{dt.now().strftime('%Y-%m-%d %H:%M:%S')}")
+                                success = st.success('Submission Successful')
+                                time.sleep(3)
+                                success.empty()
 
-                            else:
-                                st.error("Incorrect Password. Please try again.")
-                            time.sleep(2)
-                            st.rerun()
+                        # Case where number of inputs is 2
+                        if selected_game['num_inputs']==2:
+                            text_inputs = []
+                            
+                            with st.form(key='form_2_inputs'):
+                                text_area_1 = st.text_area('Buyer Prompt', help='A good prompt should be clear, specific, and provide enough context and detail about your position, interests, and desired outcomes.')
+                                text_area_2 = st.text_area('Seller Prompt')
+                                submit_button = st.form_submit_button('Submit')
+
+                            roles = ['Buyer: ', 'Seller: ']
+
+                            if submit_button:
+                                text_inputs.extend([text_area_1, text_area_2])
+                                prompts = ''
+                                for i in range(2):
+                                    prompts += roles[i] + text_inputs[i] + '\n\n'
+                                overwrite_text_file(prompts, f"Game{game_id}_Group{group_id}_{dt.now().strftime('%Y-%m-%d %H:%M:%S')}")
+                                success = st.success('Submission Successful')
+                                time.sleep(3)
+                                success.empty()
+
         else:
-            st.write("Show game :)")
-    else:
-        st.write("There are no available games.")
+            st.write("There are no available games.")
 
+    if option == 'Past Games':
+        st.header('Past Games')
+        past_games = fetch_current_games_data_by_userID('>', st.session_state.userID)
+        if past_games != []:
+            past_game_names = [past_game['game_name'] for past_game in past_games]
+            selected_past_game = st.sidebar.selectbox("Select Game", past_game_names)
+
+        else: st.write('No past games to show.') 
+        
 else:
-    st.write(
-        """Please Login first"""
-    )
+    st.write("""Please Login first""")
