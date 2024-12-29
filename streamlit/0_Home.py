@@ -3,7 +3,7 @@ import hashlib
 import time
 import jwt
 import os
-from modules.database_handler import authenticate_user, is_professor, update_password, get_userID_by_email
+from modules.database_handler import authenticate_user, is_professor, update_password, get_user_id_by_email
 from modules.email_service import valid_email, reset_password
 
 # Initialize session state variables if they are not already defined
@@ -25,8 +25,8 @@ if 'login_password' not in st.session_state:
 if 'show_reset_form' not in st.session_state:
     st.session_state['show_reset_form'] = False
 
-if 'userID' not in st.session_state:
-    st.session_state['userID'] = ""
+if 'user_id' not in st.session_state:
+    st.session_state['user_id'] = ""
 
 # Get query parameters (like ?reset=token)
 query_params = st.query_params
@@ -76,8 +76,8 @@ if not st.session_state['authenticated']:
             # Check if user is a professor
             st.session_state['professor'] = is_professor(email)
             st.session_state['authenticated'] = True
-            userID = get_userID_by_email(email)  # Default to empty if no userID is found
-            st.session_state.update({'userID': userID})
+            user_id = get_user_id_by_email(email)  # Default to empty if no user_id is found
+            st.session_state.update({'user_id': user_id})
             st.rerun()  # Rerun the page after successful login
         else:
             st.error("Invalid email or password")

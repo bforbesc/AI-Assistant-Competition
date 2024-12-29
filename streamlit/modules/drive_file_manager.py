@@ -95,7 +95,7 @@ def get_text_from_file(filename_to_read):
         return file_content
     return None
 
-# Finds a file in Google Drive by matching the userID_game_id pattern, ignoring the timestamp.
+# Finds a file in Google Drive by matching the user_id_game_id pattern, ignoring the timestamp.
 def find_file_by_name_without_timestamp(base_filename):
     creds = authenticate()
     service = build('drive', 'v3', credentials=creds)
@@ -119,8 +119,18 @@ def find_file_by_name_without_timestamp(base_filename):
         print(f"No files found with the pattern: {base_filename}")
         return None
     
-    # Return the first matching file's ID
-    return items[0]['id']
+    # Return matching files
+    for item in items:
+        if base_filename in item['name']:
+            return item['id']
+
+# Combines find_file_by_name (without timestamp) and read_file_content in a single function
+def get_text_from_file_without_timestamp(filename_to_read):
+    file_id_to_read = find_file_by_name_without_timestamp(filename_to_read)
+    if file_id_to_read:
+        file_content = read_file_content(file_id_to_read)
+        return file_content
+    return None
 
 # Deletes a file in Google Drive using its ID
 def delete_file_by_id(file_id):
@@ -132,7 +142,7 @@ def delete_file_by_id(file_id):
 # Function to overwrite a file (check if exists, delete, then upload)
 def overwrite_text_file(text_content, filename):
     # Extract base_filename (user_id_game_id) by removing the timestamp
-    base_filename = "_".join(filename.split("_")[:2])
+    base_filename = "_".join(filename.split("_")[:-1])
 
     # Check if a file with the same name exists
     file_id_to_delete = find_file_by_name_without_timestamp(base_filename)

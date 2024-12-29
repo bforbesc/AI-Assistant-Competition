@@ -1,11 +1,17 @@
-userID;email;OTP;academic year;class
-nova192300;rodrigo.lopes@gmail.com;1234;2024;A
-nova134029;carla.moniz@gmail.com;2291;2022;B
-nova100988;sara.taborda@gmail.com;4400;2024;A
-nova234221;diogo.albuquerque@gmail.com;3488;2024;A
-nova199321;ana.silva@novasbe.pt;2210;2024;A
-nova199322;maria.pereira@novasbe.pt;1947;2024;B
-nova199323;pedro.gomes@novasbe.pt;8922;2024;A
-nova199324;joao.martins@novasbe.pt;9012;2024;A
-nova199325;rita.santos@novasbe.pt;2058;2024;B
-nova199600;martim.penim@gmail.com;2210;2024;A
+userID;email;OTP;groupID;academic year;class
+nova192300;rodrigo.lopes@gmail.com;1234;1;2022;A
+nova134029;carla.moniz@gmail.com;2291;2;2022;B
+nova100988;sara.taborda@gmail.com;4400;3;2022;A
+nova234221;diogo.albuquerque@gmail.com;3488;4;2022;A
+nova228471;monica.sintra@gmail.com;9988;5;2023;B
+nova802212;artur.luis@gmail.com;2571;6;2024;B
+nova122438;vasco.nunes@gmail.com;8476;1;2022;A
+nova887796;manuel.costa@gmail.com;1124;2;2022;A
+nova902381;paulo.montenegro@gmail.com;3435;3;2024;B
+nova990077;sofia.pascoal@gmail.com;9162;4;2023;A
+nova778521;vitor.goncalves@gmail.com;8766;5;2023;A
+nova444285;tiago.almeida@gmail.com;2840;6;2024;B
+nova999999;antoniocarlosalmeida.18@gmail.com;1111;7;2024;A
+nova888888;ricardo.machado.almeida@tecnico.ulisboa.pt;2222;8;2024;A
+nova777777;carolina.a.paiva@tecnico.ulisboa.pt;3333;9;2024;A
+nova666666;martim.penim@gmail.com;4444;10;2024;A

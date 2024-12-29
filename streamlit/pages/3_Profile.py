@@ -1,7 +1,7 @@
 import streamlit as st
 import hashlib
 import time
-from modules.database_handler import update_password, get_userID_by_email
+from modules.database_handler import update_password
 
 # Initialize session state for buttons if not set
 if 'password_edit_mode' not in st.session_state:
@@ -36,14 +36,14 @@ if st.session_state['authenticated']:
         st.markdown(f"<h3 style='font-size: 24px;'>Email</h3>", unsafe_allow_html=True)
         st.write(f"{email}")
 
-        # Display userID
-        userID = st.session_state['userID']
-        st.markdown(f"<h3 style='font-size: 24px;'>userID</h3>", unsafe_allow_html=True)
-        st.write(f"{userID}")
+        # Display user_id
+        user_id = st.session_state['user_id']
+        st.markdown(f"<h3 style='font-size: 24px;'>User ID</h3>", unsafe_allow_html=True)
+        st.write(f"{user_id}")
 
         # Display password with eye and edit pencil buttons
         st.markdown(f"<h3 style='font-size: 24px;'>Password</h3>", unsafe_allow_html=True)
-        col1, col2, _, _, _, _, _ = st.columns([4, 1, 1, 1, 1, 1, 1])  # Same structure as the userID for vertical alignment
+        col1, col2, _, _, _, _, _ = st.columns([4, 1, 1, 1, 1, 1, 1])  # Same structure as the user_id for vertical alignment
         with col1:
             password = st.session_state.get('login_password', '')
             if st.session_state['show_password']:
@@ -81,7 +81,7 @@ if st.session_state['authenticated']:
                                 # Hash and update password if strong
                                 hashed_password = hashlib.sha256(new_password.encode()).hexdigest()
 
-                                if update_password(userID, hashed_password):
+                                if update_password(user_id, hashed_password):
                                     st.success("Password updated successfully!")
                                     st.session_state['login_password'] = new_password  # Update session state password
                                     st.session_state['password_edit_mode'] = False  # Reset edit mode

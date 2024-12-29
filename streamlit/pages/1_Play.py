@@ -1,7 +1,7 @@
 import streamlit as st
 import time 
 from datetime import datetime as dt
-from modules.database_handler import fetch_current_games_data_by_userID, get_professor_id_from_game_id, get_group_id_from_game_id_and_user_id
+from modules.database_handler import fetch_current_games_data_by_user_id, get_professor_id_from_game_id, get_group_id_from_game_id_and_user_id
 from modules.drive_file_manager import get_text_from_file, overwrite_text_file
 
 # ------------------------ SET THE DEFAULT SESSION STATE FOR THE PLAY SECTION ---------------------------- #
@@ -37,7 +37,7 @@ if st.session_state['authenticated']:
 
     # Fetch the list of games from the database
     if option == 'Current Games':
-        games = fetch_current_games_data_by_userID('<', st.session_state.userID)
+        games = fetch_current_games_data_by_user_id('<', st.session_state.user_id)
         if games != []:
 
                     # Streamlit sidebar selectbox for games
@@ -86,7 +86,7 @@ if st.session_state['authenticated']:
 
                         st.write('')
 
-                        group_id = get_group_id_from_game_id_and_user_id(game_id, st.session_state['userID'])
+                        group_id = get_group_id_from_game_id_and_user_id(game_id, st.session_state['user_id'])
                         
                         # Case where number of inputs is 1
                         if selected_game['num_inputs']==1:
@@ -127,7 +127,7 @@ if st.session_state['authenticated']:
 
     if option == 'Past Games':
         st.header('Past Games')
-        past_games = fetch_current_games_data_by_userID('>', st.session_state.userID)
+        past_games = fetch_current_games_data_by_user_id('>', st.session_state.user_id)
         if past_games != []:
             past_game_names = [past_game['game_name'] for past_game in past_games]
             selected_past_game = st.sidebar.selectbox("Select Game", past_game_names)
