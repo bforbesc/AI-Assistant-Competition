@@ -163,15 +163,14 @@ def fetch_current_games_data_by_user_id(sign, user_id):
         with psycopg2.connect(DB_CONNECTION_STRING) as conn:
             with conn.cursor() as cur:
 
-                query = """
+                query = f"""
                     SELECT * 
                     FROM game g JOIN plays p 
-                        ON g.game_id = p.game_id
-                    WHERE (p.user_id = %(param1)s
-                    AND CURRENT_TIMESTAMP %(param2)s g.timestamp_submission_deadline);
-                """
+                        ON g.game_id = p.game_id                
+                    WHERE (p.user_id =  %(param1)s 
+                    AND CURRENT_TIMESTAMP {sign} g.timestamp_submission_deadline); """
         
-                cur.execute(query, {'param1': user_id, 'param2': sign})
+                cur.execute(query , {'param1': user_id})
 
                 games_data = cur.fetchall()
                 if games_data:
@@ -197,7 +196,7 @@ def fetch_current_games_data_by_user_id(sign, user_id):
     
     except Exception:
         return []
-
+    
 # Function to retrieve the last gameID from the database and increment it
 def get_next_game_id():
     try:
@@ -255,6 +254,29 @@ def update_game_in_db(game_id, created_by, game_name, number_of_rounds, num_inpu
             
     except Exception:
         return False
+    
+# Function to update access of negotatiation chats to students 
+def update_access_to_chats(access, game_id):
+    try:
+        with psycopg2.connect(DB_CONNECTION_STRING) as conn:
+            with conn.cursor() as cur:
+
+                query1 = """
+                    UPDATE game
+                    SET available = %(param1)s
+                    WHERE game_id = %(param2)s;
+                """
+
+                cur.execute(query1, {
+                    'param1': access,
+                    'param2': game_id
+                })
+
+                return True
+            
+    except Exception:
+        print('not done')
+        return False
 
 # Function to store game details in the database
 def store_game_in_db(game_id, available, created_by, game_name, number_of_rounds, num_inputs, game_academic_year, game_class, password, timestamp_game_creation, submission_deadline):
@@ -287,14 +309,14 @@ def store_game_in_db(game_id, available, created_by, game_name, number_of_rounds
         return False
     
 # Function to get the id of the group from game_id and user_id
-def get_group_id_from_game_id_and_user_id(game_id, user_id):
+def get_group_id_from_user_id(user_id):
     try:
         with psycopg2.connect(DB_CONNECTION_STRING) as conn:
             with conn.cursor() as cur:
 
-                query = "SELECT group_id FROM plays WHERE (game_id = %(param1)s AND user_id = %(param2)s);"
+                query = "SELECT group_id FROM user_ WHERE user_id = %(param1)s;"
 
-                cur.execute(query, {'param1': game_id, 'param2': user_id})
+                cur.execute(query, {'param1': user_id})
                 group_id = cur.fetchone()[0]
 
                 return group_id
@@ -302,18 +324,17 @@ def get_group_id_from_game_id_and_user_id(game_id, user_id):
     except Exception:
         return False
 
-# Function to get the id of the professor that created the game
-def get_professor_id_from_game_id(game_id):
+# Function to get the game availability from the game_id 
+def get_game_access(game_id): 
     try:
         with psycopg2.connect(DB_CONNECTION_STRING) as conn:
             with conn.cursor() as cur:
 
-                query = "SELECT created_by FROM game WHERE game_id = %s;"
+                query = "SELECT available FROM game WHERE game_id = %s;"
 
                 cur.execute(query, (game_id,))
-                professor_id = cur.fetchone()[0]
-
-                return professor_id
+                game_acess = cur.fetchone()[0]
+                return game_acess
 
     except Exception:
         return False
@@ -383,6 +404,69 @@ def insert_student_data(user_id, email, otp, group_id, academic_year, class_):
          
                 return True
             
+    except Exception:
+        return False
+
+# Function to insert round data into the 'round' table
+def insert_round_data(game_id, round_number, group1_id, group2_id, score_group1, score_group2):
+    try:
+        with psycopg2.connect(DB_CONNECTION_STRING) as conn:
+            with conn.cursor() as cur:
+
+                query = """
+                    INSERT INTO round (game_id, round_number, group1_id, group2_id, score_group1, score_group2)
+                    VALUES (%(param1)s, %(param2)s, %(param3)s, %(param4)s, %(param5)s, %(param6)s);
+                """
+
+                cur.execute(query, {
+                    'param1': game_id, 
+                    'param2': round_number, 
+                    'param3': group1_id, 
+                    'param4': group2_id, 
+                    'param5': score_group1, 
+                    'param6': score_group2,
+                })
+         
+                return True
+            
+    except Exception:
+        return False
+    
+# Function to get the round information of a specific group from a specific game
+def get_round_data(game_id, group_id):
+    try:
+        with psycopg2.connect(DB_CONNECTION_STRING) as conn:
+            with conn.cursor() as cur:
+
+                query = "SELECT round_number, group1_id, group2_id FROM round WHERE (group1_id = %(param2)s OR group2_id = %(param2)s) AND game_id=%(param1)s;"
+
+                cur.execute(query,{
+                    'param1': game_id, 
+                    'param2': group_id, 
+                })
+                round_data = cur.fetchall()
+
+                return round_data
+
+    except Exception:
+        return False
+
+# Function to get the ids of the groups that played a specific game
+def get_group_ids_from_game_id(game_id): 
+    try:
+        with psycopg2.connect(DB_CONNECTION_STRING) as conn:
+            with conn.cursor() as cur:
+                query = '''SELECT DISTINCT u.group_id
+                        FROM user_ u
+                        JOIN plays p ON u.user_id = p.user_id
+                        WHERE p.game_id = %(param1)s;''' 
+
+                cur.execute(query, {
+                    'param1': game_id})
+                
+                group_ids = cur.fetchall()
+                return [i[0] for i in group_ids]
+
     except Exception:
         return False
 
