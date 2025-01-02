@@ -4,8 +4,10 @@ import hashlib
 import time
 from datetime import datetime
 from st_aggrid import GridOptionsBuilder, AgGrid, GridUpdateMode, ColumnsAutoSizeMode
-from modules.database_handler import populate_plays_table, get_academic_year_class_combinations, get_game_by_id, update_game_in_db, fetch_games_data, get_next_game_id, store_game_in_db, remove_student, get_students_from_db, insert_student_data
+from modules.database_handler import populate_plays_table, insert_student_data, remove_student, store_game_in_db, update_game_in_db, update_access_to_chats
+from modules.database_handler import get_academic_year_class_combinations, get_game_by_id, fetch_games_data, get_next_game_id, get_students_from_db, get_group_ids_from_game_id
 from modules.drive_file_manager import overwrite_text_file, get_text_from_file, upload_text_as_file
+from modules.negotiations import create_chats
 
 # ---------------------------- SET THE DEFAULT SESSION STATE FOR ALL CASES ------------------------------- #
 
@@ -39,6 +41,11 @@ if "game_id" not in st.session_state:
 
 # -------------------------------------------------------------------------------------------------------- #
 
+@st.cache_resource
+def get_text_from_file_aux(name):
+    text = get_text_from_file(f'{name}.txt')
+    return text
+
 # Check if the user is authenticated
 if st.session_state['authenticated']:
 
@@ -61,6 +68,7 @@ if st.session_state['authenticated']:
             st.session_state.update({'authenticated': False})
             st.session_state.update({'login_email': ""})
             st.session_state.update({'login_password': ""})
+            st.session_state.show_game_password_form = True
             time.sleep(2)
             st.switch_page("0_Home.py")  # Redirect to home page
 
@@ -74,8 +82,8 @@ if st.session_state['authenticated']:
 
             # Action selection dropdown
             c1, _ = st.columns([3, 2])
-            selected_option = c1.selectbox("Select Option", ["Student Management", "Game Configuration", "Available Games", 
-                                                            "Leaderboard and Performance", "Game Data Management", "Security"])
+            selected_option = c1.selectbox("Select Option", ["Student Management", "Create Game", "Available Games",
+                                                             "Run Simulation" , "Game Data", "Leaderboard and Performance", "Security"])
 
             if st.button("Select"):
                 st.session_state.action = selected_option  # Update session state only when the button is clicked
@@ -249,7 +257,7 @@ if st.session_state['authenticated']:
                         time.sleep(2)
                         st.rerun()
 
-                case "Game Configuration":  # Allow professor to create a game
+                case "Create Game":  # Allow professor to create a game
                     # Get academic year and class combinations
                     academic_year_class_combinations = get_academic_year_class_combinations()
 
@@ -361,7 +369,7 @@ if st.session_state['authenticated']:
                                 user_id = st.session_state.get('user_id')
 
                                 # Get the Game explanation from Google Drive using the filename
-                                game_explanation = get_text_from_file(f"{user_id}_{selected_game['game_id']}_{selected_game['timestamp_game_creation']}.txt")
+                                game_explanation = get_text_from_file_aux(f"{selected_game['created_by']}_{selected_game['game_id']}_{selected_game['timestamp_game_creation']}")
                                 if game_explanation:
                                     st.write(f"**Game Explanation**: {game_explanation}")
                                 else:
@@ -394,7 +402,7 @@ if st.session_state['authenticated']:
                             deadline_time_stored = game_details["timestamp_submission_deadline"].time()
 
                             # Fetch Game explanation from Google Drive
-                            game_explanation_stored = get_text_from_file(f"{created_by_stored}_{game_id_edit}_{timestamp_game_creation_stored}.txt")
+                            game_explanation_stored = get_text_from_file_aux(f"{created_by_stored}_{game_id_edit}_{timestamp_game_creation_stored}")
                         else:
                             st.error("Game not found.")
 
@@ -474,21 +482,68 @@ if st.session_state['authenticated']:
                             time.sleep(2)
                             st.rerun()
 
-                case "Game Results":
+                case "Run Simulation":
+                    games = fetch_games_data()
+                    if games != []:
+                            game_names = [game['game_name'] for game in games]
+                            selected_game_name = st.sidebar.selectbox("Select a Game", game_names)
+
+                            selected_game = next((game for game in games if game['game_name'] == selected_game_name), None)
+                            game_id = selected_game['game_id']
+
+                            teams = get_group_ids_from_game_id(game_id)
+                            
+                            with st.form(key='my_form'):
+                                api_key = st.text_input('API Key', value=1)
+                                model = st.selectbox('OpenAI Model', ['gpt-4o', 'gpt-4o-mini'])
+                                temperature = 0# st.number_input('Temperature', min_value=0.0, max_value=1.0, value=0.0)
+                                num_rounds =  st.number_input('Number of Rounds', step=1, min_value=1, value=2)#, max_value=num_teams-1
+                                if selected_game['num_inputs']==2:
+                                    conversation_starter = st.radio('Conversation Starter', ['Buyer > Seller', 'Seller > Buyer'], horizontal=True)
+                                starting_message =  st.text_input('Starting Messsage', value='I want to buy this car.')
+                                num_turns =  st.number_input('Number of Turns', step=1, min_value=1, value=5)#, max_value=num_teams-1
+                                negotiation_termination_message = st.text_input('Negotiation Termination Message', value='Pleasure doing business with you')
+                                summary_prompt = st.text_input('Negotiation Summary Prompt', value='For how much was the car sold?')
+                                summary_termination_message = st.text_input('Summary Termination Message', value='The value agreed was')
+
+                                submit_button = st.form_submit_button(label='Run')
+
+                            if submit_button:
+                                config_list = [{"api_key": api_key, "model": model, "temperature": temperature}]
+                                #create_chats(game_id, config_list, teams, num_rounds, starting_message, num_turns, negotiation_termination_message, summary_prompt, summary_termination_message)
+                                success = st.success('All negotiations successfully created.')
+                                time.sleep(3)
+                                success.empty()
+
+                case "Game Data":
                     st.write("To be implemented")
 
+                    # col1, col2 = st.columns(2)
+                    #     with col1: access_enabled = st.button('Enable Student Access to Negotiation Chats')
+                    #     with col2: access_disabled = st.button('Disable Student Access to Negotiation Chats')
+
+                    #     if access_enabled: 
+                    #         update_access_to_chats(1, selected_game['game_id'])
+                    #         success = st.success('Student Access successfully enabled.')
+                    #         time.sleep(3)
+                    #         success.empty()                                
+                    #     if access_disabled: 
+                    #         update_access_to_chats(0, selected_game['game_id'])
+                    #         success = st.success('Student Access successfully disabled.')
+                    #         time.sleep(3)
+                    #         success.empty() 
+
                 case "Leaderboard and Performance":
+                    st.write("To be implemented")
+
+                case "Security":
                     st.write("To be implemented")
 
                 case _:
                     st.header("Select Option")
 
     else:
-        st.write(
-            """Page available only for Professors"""
-        )
+        st.write('Page available only for Professors')
 
 else:
-    st.write(
-        """Please Login first (Page available only for Professors)"""
-    )
+    st.write('Please Login first (Page available only for Professors)')
