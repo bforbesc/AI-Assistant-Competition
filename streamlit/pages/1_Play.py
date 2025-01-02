@@ -1,8 +1,9 @@
 import streamlit as st
+import re
 import time 
 from datetime import datetime as dt
-from modules.database_handler import fetch_current_games_data_by_user_id, get_professor_id_from_game_id, get_group_id_from_game_id_and_user_id
-from modules.drive_file_manager import get_text_from_file, overwrite_text_file
+from modules.database_handler import fetch_current_games_data_by_user_id, get_group_id_from_user_id, get_game_access, get_round_data
+from modules.drive_file_manager import get_text_from_file, overwrite_text_file, get_text_from_file_without_timestamp
 
 # ------------------------ SET THE DEFAULT SESSION STATE FOR THE PLAY SECTION ---------------------------- #
 
@@ -13,8 +14,13 @@ if "show_game_password_form" not in st.session_state:
 # -------------------------------------------------------------------------------------------------------- #
 
 @st.cache_resource
-def get_text_from_file_aux(professor_id, game_id, timestamp):
-    text = get_text_from_file(f"{professor_id}_{game_id}_{timestamp}.txt")
+def get_text_from_file_aux(name):
+    text = get_text_from_file(f'{name}.txt')
+    return text
+
+@st.cache_resource
+def get_text_from_file_without_timestamp_aux(name):
+    text = get_text_from_file_without_timestamp(name)
     return text
 
 # Check if the user is authenticated
@@ -51,12 +57,13 @@ if st.session_state['authenticated']:
 
                     with st.expander("Explanation"):
 
-                        # Retrieve the game ID and professor ID of the game
+                        # Retrieve the ID, professor ID and timestamp of the game
                         game_id = selected_game['game_id']
-                        professor_id = get_professor_id_from_game_id(game_id)
+                        professor_id = selected_game['created_by']
+                        game_timestamp = selected_game['timestamp_game_creation']
     
                         # Get the Game explanation from Google Drive using the filename
-                        game_explanation = get_text_from_file_aux(professor_id, game_id, selected_game['timestamp_game_creation'])
+                        game_explanation = get_text_from_file_aux(f'{professor_id}_{game_id}_{game_timestamp}')
                         if game_explanation:
                             st.write(f"{game_explanation}")
                         else:
@@ -86,7 +93,7 @@ if st.session_state['authenticated']:
 
                         st.write('')
 
-                        group_id = get_group_id_from_game_id_and_user_id(game_id, st.session_state['user_id'])
+                        group_id = get_group_id_from_user_id(st.session_state['user_id'])
                         
                         # Case where number of inputs is 1
                         if selected_game['num_inputs']==1:
@@ -125,14 +132,86 @@ if st.session_state['authenticated']:
         else:
             st.write("There are no available games.")
 
-    if option == 'Past Games':
+    if option == 'Past Games': 
+
         st.header('Past Games')
-        past_games = fetch_current_games_data_by_user_id('>', st.session_state.user_id)
+
+        past_games = fetch_current_games_data_by_user_id('<', st.session_state.user_id) #should be '>'
+
+        # If there are past games (in which the student took part)
         if past_games != []:
             past_game_names = [past_game['game_name'] for past_game in past_games]
-            selected_past_game = st.sidebar.selectbox("Select Game", past_game_names)
+            selected_past_game_name = st.sidebar.selectbox("Select Game", past_game_names)
+            selected_past_game = next((game for game in past_games if game['game_name'] == selected_past_game_name), None)
+             
+            st.header(selected_past_game_name)
 
-        else: st.write('No past games to show.') 
+            group_id = get_group_id_from_user_id(st.session_state['user_id'])
+
+            game_id = selected_past_game['game_id']
+            professor_id = selected_past_game['created_by']
+            game_timestamp = selected_past_game['timestamp_game_creation']
+
+            submission = get_text_from_file_without_timestamp_aux(f'Game{game_id}_Group{group_id}') 
+
+            # If negotiation chats of the game are already available to students
+            if get_game_access(selected_past_game['game_id'])==1:
+                
+                round_data=get_round_data(selected_past_game['game_id'], get_group_id_from_user_id(st.session_state['user_id']))
+  
+                files_names=[]
+                for i in range(len(round_data)):
+                    round = round_data[i][0] 
+                    team_1, team_2 =  round_data[i][1], round_data[i][2] 
+                    if team_1 == get_group_id_from_user_id(st.session_state['user_id']):
+                        files_names.append([round, team_2])
+                    else: files_names.append([round, team_1])
+
+                options = ['Buyer', 'Seller']
+                selection = st.sidebar.radio(label= 'Select Your Position', options=options, horizontal=True)
+
+                options_chat = [f'Round {i[0]} (vs Group {i[1]})' for i in files_names]
+                chat_selector = st.sidebar.selectbox('Select Negotiation Chat', options_chat)
+
+                with st.expander("Explanation"):
+                    game_explanation = get_text_from_file_aux(f'{professor_id}_{game_id}_{game_timestamp}')
+                    if game_explanation:
+                        st.write(f"{game_explanation}")
+                    else:
+                        st.write("No explanation found for this game.")
+
+                with st.expander("See your prompts"):
+                    st.write(submission)
+
+                st.markdown(f'### {chat_selector}')
+
+                round_and_group = re.findall(r'\d+', chat_selector)
+                round_and_group = list(map(int, round_and_group))   
+
+                if selection == 'Buyer':
+                    chat = get_text_from_file_aux(f'Game{game_id}_Round{round_and_group[0]}_Group{group_id}_Group{round_and_group[1]}')
+                    st.write(chat)
+
+                elif selection == 'Seller':
+                    chat = get_text_from_file_aux(f'Game{game_id}_Round{round_and_group[0]}_Group{round_and_group[1]}_Group{group_id}')
+                    st.write(chat)
+    
+            # If negotiation chats of the game are not yet available to students
+            else: 
+                st.write('Negotiation Chats are not available yet.')
+                with st.expander("Explanation"):
+                    game_explanation = get_text_from_file_aux(f'{professor_id}_{game_id}_{game_timestamp}')
+                    if game_explanation:
+                        st.write(f"{game_explanation}")
+                    else:
+                        st.write("No explanation found for this game.")
+                    
+                with st.expander("See your prompts"):
+                    st.write(submission)
+
+        # If there are not any past games (in which the student took part)
+        else: 
+            st.write('No past games to show.') 
         
 else:
-    st.write("""Please Login first""")
+    st.write('Please Login first')
