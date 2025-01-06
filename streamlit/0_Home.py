@@ -4,7 +4,7 @@ import time
 import jwt
 import os
 from modules.database_handler import authenticate_user, is_professor, update_password, get_user_id_by_email
-from modules.email_service import valid_email, reset_password
+from modules.email_service import valid_email, set_password
 
 # Initialize session state variables if they are not already defined
 if 'authenticated' not in st.session_state:
@@ -13,8 +13,8 @@ if 'authenticated' not in st.session_state:
 if 'professor' not in st.session_state:
     st.session_state['professor'] = False
 
-if 'reset_email' not in st.session_state:
-    st.session_state['reset_email'] = ""
+if 'set_password_email' not in st.session_state:
+    st.session_state['set_password_email'] = ""
 
 if 'login_email' not in st.session_state:
     st.session_state['login_email'] = ""
@@ -22,18 +22,24 @@ if 'login_email' not in st.session_state:
 if 'login_password' not in st.session_state:
     st.session_state['login_password'] = ""
 
-if 'show_reset_form' not in st.session_state:
-    st.session_state['show_reset_form'] = False
+#if 'show_password_options' not in st.session_state:
+#    st.session_state['show_password_options'] = False
+
+if 'show_set_password_form' not in st.session_state:
+    st.session_state['show_set_password_form'] = False
+
+#if 'show_change_password_form' not in st.session_state:
+#    st.session_state['show_change_password_form'] = False
 
 if 'user_id' not in st.session_state:
     st.session_state['user_id'] = ""
 
-# Get query parameters (like ?reset=token)
+# Get query parameters (like ?set_password=token)
 query_params = st.query_params
 
-# Check if 'show_reset_form' exists in query params and set session state to True
-if 'show_reset_form' in query_params:
-    st.session_state['show_reset_form'] = True
+# Check if 'set_password' exists in query params and set session state to True
+if 'show_set_password_form' in query_params:
+    st.session_state['show_set_password_form'] = True
 
 # Main login section if the user is not logged in
 if not st.session_state['authenticated']:
@@ -49,16 +55,16 @@ if not st.session_state['authenticated']:
     password = st.text_input("Password", type="password", value=st.session_state['login_password'])
 
     # Create columns to place the buttons
-    col1, col2 = st.columns([3, 1])
+    col1, col2 = st.columns([5, 1])
     
     with col1:
         # Login button on the left
         login_button = st.button("Login", key="login_button")
     
     with col2:
-        # Forgot password link that reloads the page with show_reset_form=true
+        # Set password link that reloads the page with show_set_password_form=true
         st.markdown(
-            "<a href='?show_reset_form=true'>Forgot your password?</a>",
+            "<a href='?show_set_password_form=true'>Set Password</a>",
             unsafe_allow_html=True
         )
 
@@ -83,64 +89,118 @@ if not st.session_state['authenticated']:
             st.error("Invalid email or password")
 
 
-    # Password reset section
-    if st.session_state.get('show_reset_form'):
-        # Show reset form when 'show_reset_form' is True
-        st.markdown("# Reset Password")
-        st.write("Please enter your email to reset your password.")
-        reset_email = st.text_input("Enter your email address", key="reset_email", value=st.session_state['reset_email'])
-        submit_reset = st.button("Reset the Password")
+    # Password options section
+    #if st.session_state.get('show_password_options'):
+        # Show password options section when 'show_password_options' is True
 
-        # When reset password is submitted
-        if submit_reset:
-            if valid_email(st.session_state['reset_email']):
-                if reset_password(st.session_state['reset_email']):
-                    st.success("Password reset link has been sent to your email!")
+    #    options = ['Create Password', 'Change Password']
+    #    selection = st.radio(label= 'Select an option', options=options, horizontal=True)
+
+    #    if selection == 'Create Password':
+    #        st.session_state.update({'show_change_password_form': False})
+    #        st.session_state.update({'show_creation_form': True})
+    #    elif selection == 'Change Password':
+    #        st.session_state.update({'show_creation_form': False})
+    #        st.session_state.update({'show_change_password_form': True})
+
+    # Set Password section
+    # if st.session_state.get('show_set_password_form'):
+    #     st.markdown("# Set Password")
+
+    #     user_email = st.text_input("Enter your email address", key="user_email")
+    #     # Input fields for intended password and confirmation
+    #     intended_password = st.text_input("Enter your Password", type="password")
+    #     confirm_intended_password = st.text_input("Confirm your Password", type="password")
+
+    #     set_password_button = st.button("Set Password", key="set_password_button")
+
+    #     # When the change password button is clicked
+    #     if set_password_button:
+    #         if not valid_email(user_email):
+    #             st.error("Please enter a valid email address.")
+    #         else:
+    #             if intended_password and confirm_intended_password:
+    #                 if intended_password == confirm_intended_password:
+    #                     # Check if password is strong
+    #                     if (len(intended_password) >= 8 and
+    #                         any(char.isupper() for char in intended_password) and
+    #                         any(char.islower() for char in intended_password) and
+    #                         any(char.isdigit() for char in intended_password) and
+    #                         any(char in '!@#$%^&*()-_=+[]{}|;:,.<>?/`~' for char in intended_password)):
+
+    #                         # Hash and store password if strong
+    #                         hashed_password = hashlib.sha256(intended_password.encode()).hexdigest()
+    #                         if update_password(st.session_state['set_password_email'], hashed_password):
+    #                             st.success("Password successfully created!")
+    #                             time.sleep(2)
+    #                             st.switch_page("0_Home.py")
+    #                         else:
+    #                             st.error("Failed to set password.")
+    #                     else:
+    #                         st.error("Password must be at least 8 characters long and include an uppercase letter, \
+    #                                     a lowercase letter, a number, and a special character.")
+    #                 else:
+    #                     st.error("Passwords do not match. Please try again.")
+    #             else:
+    #                 st.error("Please fill in both password fields.")
+
+    # Set password section
+    if st.session_state.get('show_set_password_form'):
+        st.markdown("# Set Password")
+
+        set_password_email = st.text_input("Enter your email address", key="set_password_email", value=st.session_state['set_password_email'])
+
+        set_password_button = st.button("Set the Password")
+
+        if set_password_button:
+            if valid_email(st.session_state['set_password_email']):
+                if set_password(st.session_state['set_password_email']):
+                    st.success("Set password link has been sent to your email!")
                 else:
                     st.error("Email not found. Please check your email and try again.")
             else:
                 st.error("Please enter a valid email address.")
 
 
-    # Handling password reset from the link
+    # Handling set password from the link
     SECRET_KEY = str(os.getenv("SECRET_KEY"))
 
-    # Check if there's a reset token in query parameters
-    if 'reset' in query_params:
-        st.markdown("# New Password")
-        token = query_params['reset']
+    # Check if there's a set_password token in query parameters
+    if 'set_password' in query_params:
+        st.markdown("# Set Password")
+        token = query_params['set_password']
         if token.startswith("b'") and token.endswith("'"):
             token = token[2:-1]  # Clean token format
 
         try:
             # Decode the JWT token
             decoded_payload = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
-            st.session_state['reset_email'] = decoded_payload.get('email', '')
+            st.session_state['set_password_email'] = decoded_payload.get('email', '')
 
             # Input fields for new password and confirmation
-            new_password = st.text_input("Enter your new Password", type="password")
-            confirm_password = st.text_input("Confirm your new Password", type="password")
-            change_password_button = st.button("Change Password", key="change_password_button")
+            password = st.text_input("Enter Password", type="password")
+            confirm_password = st.text_input("Confirm your Password", type="password")
+            set_password_button = st.button("Set Password", key="set_password_button")
 
-            # When the change password button is clicked
-            if change_password_button:
-                if new_password and confirm_password:
-                    if new_password == confirm_password:
+            # When the set password button is clicked
+            if set_password_button:
+                if password and confirm_password:
+                    if password == confirm_password:
                         # Check if password is strong
-                        if (len(new_password) >= 8 and
-                            any(char.isupper() for char in new_password) and
-                            any(char.islower() for char in new_password) and
-                            any(char.isdigit() for char in new_password) and
-                            any(char in '!@#$%^&*()-_=+[]{}|;:,.<>?/`~' for char in new_password)):
+                        if (len(password) >= 8 and
+                            any(char.isupper() for char in password) and
+                            any(char.islower() for char in password) and
+                            any(char.isdigit() for char in password) and
+                            any(char in '!@#$%^&*()-_=+[]{}|;:,.<>?/`~' for char in password)):
 
                             # Hash and update password if strong
-                            hashed_password = hashlib.sha256(new_password.encode()).hexdigest()
-                            if update_password(st.session_state['reset_email'], hashed_password):
-                                st.success("Password successfully changed!")
+                            hashed_password = hashlib.sha256(password.encode()).hexdigest()
+                            if update_password(st.session_state['set_password_email'], hashed_password):
+                                st.success("Password successfully set!")
                                 time.sleep(2)
                                 st.switch_page("0_Home.py")
                             else:
-                                st.error("Failed to update password.")
+                                st.error("Failed to set password.")
                         else:
                             st.error("Password must be at least 8 characters long and include an uppercase letter, \
                                      a lowercase letter, a number, and a special character.")
@@ -149,9 +209,9 @@ if not st.session_state['authenticated']:
                 else:
                     st.error("Please fill in both password fields.")
         except jwt.ExpiredSignatureError:
-            st.error("The reset link has expired. Please request a new one.")
+            st.error("The set password link has expired. Please request a new one.")
         except jwt.InvalidTokenError:
-            st.error("Invalid reset link. Please check the link and try again.")
+            st.error("Invalid set password link. Please check the link and try again.")
 
 else:
     # If the user is logged in, we provide the following content

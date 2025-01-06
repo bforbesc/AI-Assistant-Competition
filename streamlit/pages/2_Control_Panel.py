@@ -1,13 +1,12 @@
 import streamlit as st
 import pandas as pd
-import hashlib
 import time
+import re
 from datetime import datetime
 from st_aggrid import GridOptionsBuilder, AgGrid, GridUpdateMode, ColumnsAutoSizeMode
-from modules.database_handler import populate_plays_table, insert_student_data, remove_student, store_game_in_db, update_game_in_db, update_access_to_chats
-from modules.database_handler import get_academic_year_class_combinations, get_game_by_id, fetch_games_data, get_next_game_id, get_students_from_db, get_group_ids_from_game_id
-from modules.drive_file_manager import overwrite_text_file, get_text_from_file, upload_text_as_file
-from modules.negotiations import create_chats
+from modules.database_handler import populate_plays_table, insert_student_data, remove_student, store_game_in_db, update_game_in_db, update_num_rounds_game, update_access_to_chats
+from modules.database_handler import get_academic_year_class_combinations, get_game_by_id, fetch_games_data, get_next_game_id, get_students_from_db, get_group_ids_from_game_id, get_round_data
+from modules.drive_file_manager import overwrite_text_file, get_text_from_file, upload_text_as_file, get_text_from_file_without_timestamp
 
 # ---------------------------- SET THE DEFAULT SESSION STATE FOR ALL CASES ------------------------------- #
 
@@ -46,6 +45,11 @@ def get_text_from_file_aux(name):
     text = get_text_from_file(f'{name}.txt')
     return text
 
+@st.cache_resource
+def get_text_from_file_without_timestamp_aux(name):
+    text = get_text_from_file_without_timestamp(name)
+    return text
+
 # Check if the user is authenticated
 if st.session_state['authenticated']:
 
@@ -58,6 +62,9 @@ if st.session_state['authenticated']:
                     st.session_state.edit_game = False
                 else:
                     st.session_state.back_button = False
+                    st.session_state.add_student = False
+                    st.session_state.add_students = False
+                    st.session_state.remove_student = False
                     st.session_state.action = "Select Option"
                 st.rerun()
     with col3:
@@ -68,6 +75,10 @@ if st.session_state['authenticated']:
             st.session_state.update({'authenticated': False})
             st.session_state.update({'login_email': ""})
             st.session_state.update({'login_password': ""})
+            st.session_state.add_student = False
+            st.session_state.add_students = False
+            st.session_state.remove_student = False
+            st.session_state.action = "Select Option"
             st.session_state.show_game_password_form = True
             time.sleep(2)
             st.switch_page("0_Home.py")  # Redirect to home page
@@ -104,24 +115,23 @@ if st.session_state['authenticated']:
                     def add_students_from_csv(file):
                         try:
                             # Read CSV with a semicolon delimiter
-                            df = pd.read_csv(file, sep=';', dtype={'OTP': str, 'academic year': str})
+                            df = pd.read_csv(file, sep=';', dtype={'academic year': str})
                             
                             # Check if all required columns exist in the CSV
-                            if 'userID' not in df.columns or 'email' not in df.columns or 'OTP' not in df.columns or 'groupID' not in df.columns or 'academic year' \
+                            if 'userID' not in df.columns or 'email' not in df.columns or 'groupID' not in df.columns or 'academic year' \
                                 not in df.columns or 'class' not in df.columns:
-                                st.error("CSV must contain 'userID', 'email', 'OTP', 'groupID', 'academic year' and 'class' columns.")
+                                st.error("CSV must contain 'userID', 'email', 'groupID', 'academic year' and 'class' columns.")
                                 return
                             
                             # Insert student data row by row
                             for _, row in df.iterrows():
                                 user_id = row['userID']
                                 email = row['email']
-                                otp = row['OTP']
                                 group_id = row['groupID']
                                 academic_year = row['academic year']
                                 class_ = row['class']
 
-                                if insert_student_data(user_id, email, otp, group_id, academic_year, class_):
+                                if insert_student_data(user_id, email, group_id, "Not defined", academic_year, class_):
                                     continue
                                 else:
                                     return False
@@ -185,17 +195,23 @@ if st.session_state['authenticated']:
                     with col1:
                         if st.button("Add Students", key="add_students_via_csv"):
                             st.session_state.add_students = True
+                            st.session_state.add_student = False
+                            st.session_state.remove_student = False
                     with col2:
                         if st.button("Add Student", key="add_student_manually"):
                             st.session_state.add_student = True
+                            st.session_state.add_students = False
+                            st.session_state.remove_student = False
                     with col3:
                         if st.button("Remove Student", key="remove_student_manually"):
                             st.session_state.remove_student = True
+                            st.session_state.add_student = False
+                            st.session_state.add_students = False
 
                     # Handle adding students via CSV
                     if st.session_state.add_students:
                         with st.form("add_students_form"):
-                            uploaded_file = st.file_uploader("Upload CSV with Email and OTP", type=["csv"])
+                            uploaded_file = st.file_uploader("Upload CSV with all the Students", type=["csv"])
 
                             submit_button = st.form_submit_button("Add Students")
 
@@ -217,7 +233,6 @@ if st.session_state['authenticated']:
                         with st.form("add_student_form"):
                             user_id = st.text_input("Introduce User ID:")
                             email = st.text_input("Introduce Email:")
-                            otp = st.text_input("Introduce OTP:")
                             group_id = st.text_input("Introduce the Group ID:")
                             academic_year = st.text_input("Introduce academic year:")
                             class_ = st.text_input("Introduce class:")
@@ -225,10 +240,10 @@ if st.session_state['authenticated']:
                             submit_button = st.form_submit_button("Add Student")
 
                             if submit_button:
-                                if not user_id or not email or not otp or not group_id or not academic_year or not class_:
+                                if not user_id or not email or not group_id or not academic_year or not class_:
                                     st.error("Please fill in all fields.")
                                 else:
-                                    if insert_student_data(user_id, email, otp, group_id, academic_year, class_):
+                                    if insert_student_data(user_id, email, "Not defined", group_id, academic_year, class_):
                                         st.success("Student added successfully!")
                                     else:
                                         st.error("Failed to add student. Please try again.")
@@ -261,21 +276,19 @@ if st.session_state['authenticated']:
                     # Get academic year and class combinations
                     academic_year_class_combinations = get_academic_year_class_combinations()
 
-                    # Flatten the combinations into display-friendly strings (e.g., "2023-A")
-                    combination_options = [
-                        f"{year}-{cls}" for year, classes in academic_year_class_combinations.items() for cls in classes
-                    ]
+                    # Create options list with both years and year-class combinations
+                    combination_options = []
+                    for year, classes in academic_year_class_combinations.items():
+                        combination_options.append(f"{year}")  # Add the year itself
+                        combination_options.extend([f"{year} - {cls}" for cls in classes])  # Add year-class combinations
 
                     # Form to handle game creation
                     with st.form("game_creation_form"):
                         # Game details
                         game_name = st.text_input("Game Name", max_chars=100, key="game_name")
                         game_explanation = st.text_area("Game Explanation", key="explanation")
-                        number_of_rounds = st.number_input(
-                            "Number of Rounds", min_value=1, step=1, value=1, key="number_of_rounds"
-                        )
-                        num_inputs = st.number_input(
-                            "Number of Input Boxes", min_value=1, max_value=2, step=1, value=1, key="num_inputs"
+                        num_roles = st.number_input(
+                            "Number of Roles", min_value=1, max_value=2, step=1, value=2, key="num_roles"
                         )
 
                         # Academic year and class selection
@@ -286,7 +299,11 @@ if st.session_state['authenticated']:
                         )
 
                         # Extract academic year and class from the selected combination
-                        game_academic_year, game_class = selected_combination.split("-")
+                        if "-" in selected_combination:
+                            game_academic_year, game_class = selected_combination.split("-")
+                        else:
+                            game_academic_year = selected_combination
+                            game_class = "_"  # No class selected
 
                         password = st.text_input("Game Password (4-digit)", type="password", max_chars=4, key="password")
                         deadline_date = st.date_input("Submission Deadline Date", key="deadline_date")
@@ -298,7 +315,7 @@ if st.session_state['authenticated']:
                     # Submit button for creating the game
                     if submit_button:
                         #if create_game_button:
-                            if game_name and game_explanation and number_of_rounds and num_inputs and game_academic_year and \
+                            if game_name and game_explanation and num_roles and game_academic_year and \
                                 game_class and password and deadline_date and deadline_time:
                                 try:
                                     # Retrieve user ID from session state
@@ -319,7 +336,7 @@ if st.session_state['authenticated']:
                                     submission_deadline = datetime.combine(deadline_date, deadline_time)
 
                                     # Store other details in the database
-                                    store_game_in_db(next_game_id, 0, user_id, game_name, number_of_rounds, num_inputs, game_academic_year,
+                                    store_game_in_db(next_game_id, 0, user_id, game_name, -1, num_roles, game_academic_year,
                                                      game_class, password, timestamp_game_creation, submission_deadline)
                                     
                                     # Populate the 'plays' table with eligible students
@@ -358,7 +375,7 @@ if st.session_state['authenticated']:
                                 st.write(f"**Available**: {selected_game['available']}")
                                 st.write(f"**Created By**: {selected_game['created_by']}")
                                 st.write(f"**Number of Rounds**: {selected_game['number_of_rounds']}")
-                                st.write(f"**Number of Inputs**: {selected_game['num_inputs']}")
+                                st.write(f"**Number of Roles**: {selected_game['num_inputs']}")
                                 st.write(f"**Academic Year related to the Game**: {selected_game['game_academic_year']}")
                                 st.write(f"**Class related to the Game**: {selected_game['game_class']}")
                                 st.write(f"**Password**: {selected_game['password']}")
@@ -386,14 +403,15 @@ if st.session_state['authenticated']:
                             st.write("There are no available games.")
                     else:
                         # Handle manual game edit
-                        game_id_edit = st.session_state.game_id
-                        game_details = get_game_by_id(game_id_edit)
+                        game_id = st.session_state.game_id
+                        game_details = get_game_by_id(game_id)
 
                         if game_details:
+                            available_stored = game_details["available"]
                             created_by_stored = game_details["created_by"]
                             game_name_stored = game_details["game_name"]
                             number_of_rounds_stored = game_details["number_of_rounds"]
-                            num_inputs_stored = game_details["num_inputs"]
+                            num_roles_stored = game_details["num_inputs"]
                             game_academic_year_stored = game_details["game_academic_year"]
                             game_class_stored = game_details["game_class"]
                             password_stored = game_details["password"]
@@ -402,7 +420,7 @@ if st.session_state['authenticated']:
                             deadline_time_stored = game_details["timestamp_submission_deadline"].time()
 
                             # Fetch Game explanation from Google Drive
-                            game_explanation_stored = get_text_from_file_aux(f"{created_by_stored}_{game_id_edit}_{timestamp_game_creation_stored}")
+                            game_explanation_stored = get_text_from_file_aux(f"{created_by_stored}_{game_id}_{timestamp_game_creation_stored}")
                         else:
                             st.error("Game not found.")
 
@@ -421,8 +439,9 @@ if st.session_state['authenticated']:
                             # Game details
                             game_name_edit = st.text_input("Game Name", max_chars=100, key="game_name_edit", value=game_name_stored)
                             game_explanation_edit = st.text_area("Game Explanation", key="explanation_edit", value=game_explanation_stored)
+                            available_edit = st.number_input("Available", min_value=0, max_value=1, step=1, key="available_edit", value=available_stored)
                             number_of_rounds_edit = st.number_input("Number of Rounds", min_value=1, step=1, key="number_of_rounds_edit", value=number_of_rounds_stored)
-                            num_inputs_edit = st.number_input("Number of Input Boxes", min_value=1, step=1, key="num_inputs_edit", value=num_inputs_stored)
+                            num_roles_edit = st.number_input("Number of Roles", min_value=1, max_value=2, step=1, key="num_roles_edit", value=num_roles_stored)
 
                             # Academic year-class combination selection
                             selected_combination_edit = st.selectbox(
@@ -444,18 +463,11 @@ if st.session_state['authenticated']:
 
                         # Handle form submission
                         if submit_button:
-                            if game_name_edit and game_explanation_edit and number_of_rounds_edit and num_inputs_edit and \
+                            if available_edit and game_name_edit and game_explanation_edit and number_of_rounds_edit and num_roles_edit and \
                                 game_academic_year_edit and game_class_edit and password_edit and deadline_date_edit and deadline_time_edit:
                                 try:
-                                    # Retrieve user ID from session state
-                                    user_id = st.session_state.get('user_id')
-
-                                    game_id = st.session_state.game_id
-
-                                    timestamp_game_creation = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-
                                     # Overwrite file in Google Drive
-                                    overwrite_text_file(game_explanation_edit, f"{user_id}_{game_id}_{timestamp_game_creation}")
+                                    overwrite_text_file(game_explanation_edit, f"{created_by_stored}_{game_id}_{timestamp_game_creation_stored}")
                                     
                                     # Hash password before the creation of the game
                                     #hashed_password = hashlib.sha256(password.encode()).hexdigest()
@@ -464,8 +476,8 @@ if st.session_state['authenticated']:
                                     submission_deadline = datetime.combine(deadline_date_edit, deadline_time_edit)
 
                                     # Update other details in the database
-                                    update_game_in_db(game_id, user_id, game_name_edit, number_of_rounds_edit, num_inputs_edit, game_academic_year_edit,
-                                                        game_class_edit, password_edit, timestamp_game_creation, submission_deadline)
+                                    update_game_in_db(game_id, available_edit, created_by_stored, game_name_edit, number_of_rounds_edit, num_roles_edit, game_academic_year_edit,
+                                                        game_class_edit, password_edit, timestamp_game_creation_stored, submission_deadline)
                                     
                                     # Populate the 'plays' table with eligible students (after update)
                                     if not populate_plays_table(game_id, game_academic_year_edit, game_class_edit):
@@ -509,6 +521,7 @@ if st.session_state['authenticated']:
                                 submit_button = st.form_submit_button(label='Run')
 
                             if submit_button:
+                                update_num_rounds_game(num_rounds, game_id)
                                 config_list = [{"api_key": api_key, "model": model, "temperature": temperature}]
                                 #create_chats(game_id, config_list, teams, num_rounds, starting_message, num_turns, negotiation_termination_message, summary_prompt, summary_termination_message)
                                 success = st.success('All negotiations successfully created.')
@@ -516,22 +529,115 @@ if st.session_state['authenticated']:
                                 success.empty()
 
                 case "Game Data":
-                    st.write("To be implemented")
+                    games = fetch_games_data()
+                    if games != []:
+                            game_names = [game['game_name'] for game in games]
+                            selected_game_name = st.sidebar.selectbox("Select a Game", game_names)
+                            selected_game = next((game for game in games if game['game_name'] == selected_game_name), None)
 
-                    # col1, col2 = st.columns(2)
-                    #     with col1: access_enabled = st.button('Enable Student Access to Negotiation Chats')
-                    #     with col2: access_disabled = st.button('Disable Student Access to Negotiation Chats')
+                            game_id = selected_game['game_id']
 
-                    #     if access_enabled: 
-                    #         update_access_to_chats(1, selected_game['game_id'])
-                    #         success = st.success('Student Access successfully enabled.')
-                    #         time.sleep(3)
-                    #         success.empty()                                
-                    #     if access_disabled: 
-                    #         update_access_to_chats(0, selected_game['game_id'])
-                    #         success = st.success('Student Access successfully disabled.')
-                    #         time.sleep(3)
-                    #         success.empty() 
+                            num_rounds = selected_game['number_of_rounds']
+
+                            options = ['View Prompts', 'View Chats']
+                            selection = st.sidebar.radio(label= 'Select an option', options=options, horizontal=True)
+
+                            game_id = selected_game['game_id']
+                            professor_id = selected_game['created_by']
+                            game_timestamp = selected_game['timestamp_game_creation'] 
+
+                            group_ids = get_group_ids_from_game_id(game_id)
+
+                            st.subheader(f"{selected_game_name}")
+
+                            with st.expander("Explanation"):
+                                # Get the Game explanation from Google Drive using the filename
+                                game_explanation = get_text_from_file_aux(f'{professor_id}_{game_id}_{game_timestamp}')
+                                if game_explanation:
+                                    st.write(f"{game_explanation}")
+                                else:
+                                    st.write("No explanation found for this game.")
+
+                            if selection == 'View Prompts':
+
+                                if group_ids:
+                                    for (group_id,) in group_ids:  # Unpack the tuple
+                                        prompts = get_text_from_file_without_timestamp_aux(f'Game{game_id}_Group{group_id}')
+
+                                        # Display group header
+                                        st.write(f"### Group {group_id}")
+
+                                        # Expandable section for viewing prompts
+                                        with st.expander(f"View Prompts"):
+                                            if prompts:
+                                                st.write(prompts)
+                                            else:
+                                                st.write(f"No submission found for Group {group_id}.")
+
+                            elif selection == 'View Chats':
+
+                                # Check if the game is currently enabled
+                                is_enabled = selected_game['available']
+
+                                if is_enabled:
+                                    access_disabled = st.button('Disable Student Access to these Negotiation Chats')
+
+                                    if access_disabled: 
+                                        update_access_to_chats(0, selected_game['game_id'])
+                                        success = st.success('Student Access successfully disabled.')
+                                        time.sleep(3)
+                                        success.empty()
+                                        st.rerun()
+                                
+                                else:
+                                    access_enabled = st.button('Enable Student Access to these Negotiation Chats')
+
+                                    if access_enabled: 
+                                        update_access_to_chats(1, selected_game['game_id'])
+                                        success = st.success('Student Access successfully enabled.')
+                                        time.sleep(3)
+                                        success.empty()
+                                        st.rerun()
+
+                                if group_ids:
+                                    round_data = []
+                                    for (group_id,) in group_ids:
+                                        round_data.extend(get_round_data(game_id, group_id))
+
+                                    if round_data:
+                                        # Extract unique round numbers
+                                        unique_rounds = sorted(set(round_ for round_, _, _ in round_data))
+
+                                        round_options = [f"Round {round_}" for round_ in unique_rounds]
+
+                                        selected_round_label = st.sidebar.selectbox("Select a Round", round_options)
+
+                                        # Extract the selected round number from the label
+                                        selected_round_number = int(re.search(r'\d+', selected_round_label).group())
+
+                                        st.markdown(f"### Round {selected_round_number}")
+
+                                        # Ensure unique round-teams combinations
+                                        unique_round_teams = sorted(set(round_data))  
+
+                                        for round_, team_1, team_2 in unique_round_teams:
+                                            if round_ == selected_round_number:
+
+                                                # Fetch the chat data before creating the expander
+                                                chat_buyer = get_text_from_file_aux(f'Game{game_id}_Round{round_}_Group{team_1}_Group{team_2}')
+                                                chat_seller = get_text_from_file_aux(f'Game{game_id}_Round{round_}_Group{team_2}_Group{team_1}')
+
+                                                # Create an expander only if the chat exists
+                                                if chat_buyer:
+                                                    with st.expander(f"Group {team_1} (Buyer) vs Group {team_2} (Seller)"):
+                                                        st.write(chat_buyer)
+
+                                                if chat_seller:
+                                                    with st.expander(f"Group {team_2} (Buyer) vs Group {team_1} (Seller)"):
+                                                        st.write(chat_seller)
+
+                                        if not any([chat_buyer, chat_seller]):
+                                            st.write("No chats available for this round.")
 
                 case "Leaderboard and Performance":
                     st.write("To be implemented")

@@ -34,21 +34,21 @@ def send_otp_email(email, otp):
     
     return otp
 
-# Initiate password reset
-def reset_password(email):
+# Initiate set password
+def set_password(email):
     if exists_user(email):
-        reset_link = generate_reset_link(email)
-        send_reset_email(email, reset_link)
+        set_password_link = generate_set_password_link(email)
+        send_set_password_email(email, set_password_link)
         return True
     return False
 
-# Send reset email with reset link
-def send_reset_email(email, reset_link):
+# Send email with set password link
+def send_set_password_email(email, set_password_link):
     message = MIMEMultipart()
-    message['Subject'] = "Password Reset Request"
+    message['Subject'] = "Set Password Request"
     message['From'] = 'ricardo.almeida2210@gmail.com'
     message['To'] = email
-    body = MIMEText(f"Click here to reset your password: {reset_link}", 'plain')
+    body = MIMEText(f"Click here to set your password: {set_password_link}", 'plain')
     message.attach(body)
 
     try:
@@ -56,7 +56,7 @@ def send_reset_email(email, reset_link):
             server.starttls()
             server.login("ricardo.almeida2210@gmail.com", "zbqv zxft zmub qtru")
             server.sendmail("ricardo.almeida2210@gmail.com", email, message.as_string())
-            print("Reset email sent successfully")
+            print("Set password email sent successfully")
     except Exception as e:
         print(f"Error sending email: {e}")
 
@@ -65,8 +65,8 @@ SECRET_KEY = str(os.getenv("SECRET_KEY"))
 
 base_url = "http://localhost:8501"
 
-# Generate password reset link with JWT
-def generate_reset_link(email):
+# Generate set password link with JWT
+def generate_set_password_link(email):
     expiration_time = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(hours=1)
     payload = {'email': email, 'exp': expiration_time}
     token = jwt.encode(payload, SECRET_KEY, algorithm="HS256")
@@ -74,5 +74,5 @@ def generate_reset_link(email):
     if isinstance(token, bytes):
         token = token.decode('utf-8')
     
-    reset_url = f"{base_url}?reset={token}"
-    return reset_url
+    set_password_url = f"{base_url}?set_password={token}"
+    return set_password_url
