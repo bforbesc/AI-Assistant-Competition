@@ -2,7 +2,7 @@ import streamlit as st
 import re
 import time 
 from datetime import datetime as dt
-from modules.database_handler import fetch_current_games_data_by_user_id, get_group_id_from_user_id, get_game_access, get_round_data
+from modules.database_handler import fetch_current_games_data_by_user_id, get_group_id_from_user_id, get_round_data
 from modules.drive_file_manager import get_text_from_file, overwrite_text_file, get_text_from_file_without_timestamp
 
 # ------------------------ SET THE DEFAULT SESSION STATE FOR THE PLAY SECTION ---------------------------- #
@@ -155,7 +155,7 @@ if st.session_state['authenticated']:
             submission = get_text_from_file_without_timestamp_aux(f'Game{game_id}_Group{group_id}') 
 
             # If negotiation chats of the game are already available to students
-            if get_game_access(selected_past_game['game_id'])==1:
+            if selected_past_game['available']==1:
                 
                 round_data=get_round_data(selected_past_game['game_id'], get_group_id_from_user_id(st.session_state['user_id']))
   

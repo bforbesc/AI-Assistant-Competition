@@ -36,7 +36,7 @@ CREATE TABLE game (
     number_of_rounds SMALLINT NOT NULL,                                   -- Number of rounds in the game, cannot be null
     num_inputs SMALLINT NOT NULL,                                         -- Number of input boxes in the game, cannot be null
     game_academic_year SMALLINT NOT NULL,                                 -- Academic year related to the game, cannot be null
-    game_class CHAR(1) NOT NULL,                                          -- Represents the class related to the game, such as 'A' or 'B', cannot be null
+    game_class CHAR(1) NOT NULL,                                          -- Represents the class related to the game, such as 'A', 'B' or '_' (case where I want to consider all the classes in a certain academic year), cannot be null
     password VARCHAR(100) NOT NULL,                                       -- Hashed password to enter the game, cannot be null 
     timestamp_game_creation TIMESTAMP DEFAULT CURRENT_TIMESTAMP,          -- Timestamp of game creation, defaults to the current time
     timestamp_submission_deadline TIMESTAMP DEFAULT CURRENT_TIMESTAMP,    -- Timestamp of the submission deadline, defaults to the current time

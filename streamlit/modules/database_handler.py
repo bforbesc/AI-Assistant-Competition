@@ -61,7 +61,7 @@ def get_academic_year_class_combinations():
                     FROM user_ AS u LEFT JOIN professor AS p 
                         ON u.user_id = p.user_id
                     WHERE p.user_id IS NULL
-                    ORDER BY u.academic_year ASC, u.class ASC;
+                    ORDER BY u.academic_year DESC, u.class ASC;
                 """
 
                 cur.execute(query)
@@ -90,7 +90,7 @@ def get_game_by_id(game_id):
             with conn.cursor() as cur:
 
                 query = """
-                    SELECT created_by, game_name, number_of_rounds, 
+                    SELECT available, created_by, game_name, number_of_rounds, 
                            num_inputs, game_academic_year, game_class, password, timestamp_game_creation, 
                            timestamp_submission_deadline 
                     FROM game
@@ -103,15 +103,16 @@ def get_game_by_id(game_id):
                 
                 if result:
                     return {
-                        "created_by": result[0],
-                        "game_name": result[1],
-                        "number_of_rounds": result[2],
-                        "num_inputs": result[3],
-                        "game_academic_year": result[4],
-                        "game_class": result[5],
-                        "password": result[6],
-                        "timestamp_game_creation": result[7],
-                        "timestamp_submission_deadline": result[8]
+                        "available": result[0],
+                        "created_by": result[1],
+                        "game_name": result[2],
+                        "number_of_rounds": result[3],
+                        "num_inputs": result[4],
+                        "game_academic_year": result[5],
+                        "game_class": result[6],
+                        "password": result[7],
+                        "timestamp_game_creation": result[8],
+                        "timestamp_submission_deadline": result[9]
                     }
                 return False
             
@@ -255,7 +256,7 @@ def update_game_in_db(game_id, created_by, game_name, number_of_rounds, num_inpu
     except Exception:
         return False
     
-# Function to update access of negotatiation chats to students 
+# Function to update access of negotiation chats to students 
 def update_access_to_chats(access, game_id):
     try:
         with psycopg2.connect(DB_CONNECTION_STRING) as conn:
@@ -271,6 +272,14 @@ def update_access_to_chats(access, game_id):
                     'param1': access,
                     'param2': game_id
                 })
+
+                query2 = """
+                    SELECT * 
+                    FROM game
+                    ORDER BY game_id;
+                """
+
+                cur.execute(query2)
 
                 return True
             
@@ -324,21 +333,6 @@ def get_group_id_from_user_id(user_id):
     except Exception:
         return False
 
-# Function to get the game availability from the game_id 
-def get_game_access(game_id): 
-    try:
-        with psycopg2.connect(DB_CONNECTION_STRING) as conn:
-            with conn.cursor() as cur:
-
-                query = "SELECT available FROM game WHERE game_id = %s;"
-
-                cur.execute(query, (game_id,))
-                game_acess = cur.fetchone()[0]
-                return game_acess
-
-    except Exception:
-        return False
-
 # Function to remove a student from the database
 def remove_student(user_id):
     try:
@@ -383,7 +377,7 @@ def get_students_from_db():
         return False
 
 # Function to insert email and OTP into the user table
-def insert_student_data(user_id, email, otp, group_id, academic_year, class_):
+def insert_student_data(user_id, email, group_id, temp_password, academic_year, class_):
     try:
         with psycopg2.connect(DB_CONNECTION_STRING) as conn:
             with conn.cursor() as cur:
@@ -396,7 +390,7 @@ def insert_student_data(user_id, email, otp, group_id, academic_year, class_):
                 cur.execute(query, {
                     'param1': user_id, 
                     'param2': email, 
-                    'param3': otp, 
+                    'param3': temp_password, 
                     'param4': group_id, 
                     'param5': academic_year,
                     'param6': class_
@@ -585,6 +579,58 @@ def get_user_id_by_email(email):
                 user_id = cur.fetchone()[0]
                 
                 return user_id
+            
+    except Exception:
+        return False
+    
+# Function to get group ids by game_id
+def get_group_ids_from_game_id(game_id):
+    try:
+        with psycopg2.connect(DB_CONNECTION_STRING) as conn:
+            with conn.cursor() as cur:
+                
+                query = """
+                    SELECT u.group_id
+                    FROM (
+                            SELECT user_id, game_id
+                            FROM plays
+                            WHERE game_id = %s
+                    ) AS p JOIN user_ AS u
+                        ON p.user_id = u.user_id
+                    ORDER BY u.group_id ASC;
+                """
+
+                cur.execute(query, (game_id,))
+                group_ids = cur.fetchall()
+
+                return group_ids
+            
+    except Exception:
+        return False
+    
+# Function to update the number of rounds of a game
+def update_num_rounds_game(num_rounds, game_id):
+    try:
+        with psycopg2.connect(DB_CONNECTION_STRING) as conn:
+            with conn.cursor() as cur:
+                
+                query1 = """
+                    UPDATE game
+                    SET number_of_rounds = %(param1)s
+                    WHERE game_id = %(param2)s;
+                """
+
+                cur.execute(query1, {'param1': num_rounds, 'param2': game_id})
+
+                query2 = """
+                    SELECT * 
+                    FROM game
+                    ORDER BY game_id;
+                """
+
+                cur.execute(query2)        
+
+                return True
             
     except Exception:
         return False
