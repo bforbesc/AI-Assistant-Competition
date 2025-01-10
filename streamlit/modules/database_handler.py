@@ -16,14 +16,26 @@ def populate_plays_table(game_id, game_academic_year, game_class):
     try:
         with psycopg2.connect(DB_CONNECTION_STRING) as conn:
             with conn.cursor() as cur:
+                if game_class == '_':
+                    query = """
+                    SELECT u.user_id
+                    FROM user_ AS u LEFT JOIN professor AS p 
+                        ON u.user_id = p.user_id
+                    WHERE p.user_id IS NULL AND u.academic_year = %(param1)s;
+                    
+                """
+                    cur.execute(query, {'param1': game_academic_year})
 
-                query = """
+
+                else:
+                    query = """
                     SELECT u.user_id
                     FROM user_ AS u LEFT JOIN professor AS p 
                         ON u.user_id = p.user_id
                     WHERE p.user_id IS NULL AND u.academic_year = %(param1)s AND u.class = %(param2)s;
                 """
-                cur.execute(query, {'param1': game_academic_year, 'param2': game_class})
+                    cur.execute(query, {'param1': game_academic_year, 'param2': game_class})
+                
                 students = cur.fetchall()
 
                 if students:
@@ -208,7 +220,6 @@ def get_next_game_id():
          
                 # Fetch the result
                 last_game_id = cur.fetchone()[0]
-                print(f"last_game_id: {last_game_id}")
 
                 # Increment the last game ID or start at 1 if none exists
                 return (last_game_id + 1) if last_game_id is not None else 1
@@ -284,7 +295,6 @@ def update_access_to_chats(access, game_id):
                 return True
             
     except Exception:
-        print('not done')
         return False
 
 # Function to store game details in the database
@@ -317,13 +327,29 @@ def store_game_in_db(game_id, available, created_by, game_name, number_of_rounds
     except Exception:
         return False
     
-# Function to get the id of the group from game_id and user_id
+# Function to get the group id of the user_id
 def get_group_id_from_user_id(user_id):
     try:
         with psycopg2.connect(DB_CONNECTION_STRING) as conn:
             with conn.cursor() as cur:
 
                 query = "SELECT group_id FROM user_ WHERE user_id = %(param1)s;"
+
+                cur.execute(query, {'param1': user_id})
+                group_id = cur.fetchone()[0]
+
+                return group_id
+
+    except Exception:
+        return False
+    
+# Function to get the class of the user_id
+def get_class_from_user_id(user_id):
+    try:
+        with psycopg2.connect(DB_CONNECTION_STRING) as conn:
+            with conn.cursor() as cur:
+
+                query = "SELECT class FROM user_ WHERE user_id = %(param1)s;"
 
                 cur.execute(query, {'param1': user_id})
                 group_id = cur.fetchone()[0]
@@ -402,41 +428,66 @@ def insert_student_data(user_id, email, group_id, temp_password, academic_year, 
         return False
 
 # Function to insert round data into the 'round' table
-def insert_round_data(game_id, round_number, group1_id, group2_id, score_group1, score_group2):
+def insert_round_data(game_id, round_number, group1_class, group1_id, group2_class, group2_id, score_group1, score_group2):
     try:
         with psycopg2.connect(DB_CONNECTION_STRING) as conn:
             with conn.cursor() as cur:
 
                 query = """
-                    INSERT INTO round (game_id, round_number, group1_id, group2_id, score_group1, score_group2)
-                    VALUES (%(param1)s, %(param2)s, %(param3)s, %(param4)s, %(param5)s, %(param6)s);
+                    INSERT INTO round (game_id, round_number, group1_class, group1_id, group2_class, group2_id, score_group1, score_group2)
+                    VALUES (%(param1)s, %(param2)s, %(param3)s, %(param4)s, %(param5)s, %(param6)s, %(param7)s, %(param8)s);
                 """
 
                 cur.execute(query, {
                     'param1': game_id, 
                     'param2': round_number, 
-                    'param3': group1_id, 
-                    'param4': group2_id, 
-                    'param5': score_group1, 
-                    'param6': score_group2,
+                    'param3': group1_class, 
+                    'param4': group1_id, 
+                    'param5': group2_class, 
+                    'param6': group2_id, 
+                    'param7': score_group1, 
+                    'param8': score_group2,
                 })
          
                 return True
             
     except Exception:
         return False
-    
-# Function to get the round information of a specific group from a specific game
-def get_round_data(game_id, group_id):
+
+# Function to get the round information of a specific game from a specific game
+def get_round_data(game_id):
     try:
         with psycopg2.connect(DB_CONNECTION_STRING) as conn:
             with conn.cursor() as cur:
 
-                query = "SELECT round_number, group1_id, group2_id FROM round WHERE (group1_id = %(param2)s OR group2_id = %(param2)s) AND game_id=%(param1)s;"
+                query = '''SELECT round_number, group1_class, group1_id, group2_class, group2_id, score_group1, score_group2
+                           FROM round WHERE game_id=%(param1)s;'''
+
+                cur.execute(query,{
+                    'param1': game_id
+                })
+
+                round_data = cur.fetchall()
+
+                return round_data
+
+    except Exception:
+        return False
+
+# Function to get the round information of a specific group from a specific game
+def get_round_data_by_class_group_id(game_id, class_, group_id):
+    try:
+        with psycopg2.connect(DB_CONNECTION_STRING) as conn:
+            with conn.cursor() as cur:
+
+                query = '''SELECT round_number, group1_class, group1_id, group2_class, group2_id 
+                           FROM round 
+                           WHERE ((group1_class = %(param2)s AND group1_id = %(param3)s) OR (group2_class = %(param2)s AND group2_id = %(param3)s)) AND game_id=%(param1)s;'''
 
                 cur.execute(query,{
                     'param1': game_id, 
-                    'param2': group_id, 
+                    'param2': class_,
+                    'param3': group_id, 
                 })
                 round_data = cur.fetchall()
 
@@ -450,16 +501,17 @@ def get_group_ids_from_game_id(game_id):
     try:
         with psycopg2.connect(DB_CONNECTION_STRING) as conn:
             with conn.cursor() as cur:
-                query = '''SELECT DISTINCT u.group_id
+                query = '''SELECT DISTINCT u.class, u.group_id
                         FROM user_ u
                         JOIN plays p ON u.user_id = p.user_id
-                        WHERE p.game_id = %(param1)s;''' 
+                        WHERE p.game_id = %(param1)s
+                        ORDER BY u.class, u.group_id;''' 
 
                 cur.execute(query, {
                     'param1': game_id})
                 
                 group_ids = cur.fetchall()
-                return [i[0] for i in group_ids]
+                return group_ids
 
     except Exception:
         return False
@@ -582,32 +634,7 @@ def get_user_id_by_email(email):
             
     except Exception:
         return False
-    
-# Function to get group ids by game_id
-def get_group_ids_from_game_id(game_id):
-    try:
-        with psycopg2.connect(DB_CONNECTION_STRING) as conn:
-            with conn.cursor() as cur:
-                
-                query = """
-                    SELECT u.group_id
-                    FROM (
-                            SELECT user_id, game_id
-                            FROM plays
-                            WHERE game_id = %s
-                    ) AS p JOIN user_ AS u
-                        ON p.user_id = u.user_id
-                    ORDER BY u.group_id ASC;
-                """
-
-                cur.execute(query, (game_id,))
-                group_ids = cur.fetchall()
-
-                return group_ids
-            
-    except Exception:
-        return False
-    
+        
 # Function to update the number of rounds of a game
 def update_num_rounds_game(num_rounds, game_id):
     try:
