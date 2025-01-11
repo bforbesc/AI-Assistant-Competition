@@ -22,14 +22,8 @@ if 'login_email' not in st.session_state:
 if 'login_password' not in st.session_state:
     st.session_state['login_password'] = ""
 
-#if 'show_password_options' not in st.session_state:
-#    st.session_state['show_password_options'] = False
-
 if 'show_set_password_form' not in st.session_state:
     st.session_state['show_set_password_form'] = False
-
-#if 'show_change_password_form' not in st.session_state:
-#    st.session_state['show_change_password_form'] = False
 
 if 'user_id' not in st.session_state:
     st.session_state['user_id'] = ""
@@ -87,62 +81,6 @@ if not st.session_state['authenticated']:
             st.rerun()  # Rerun the page after successful login
         else:
             st.error("Invalid email or password")
-
-
-    # Password options section
-    #if st.session_state.get('show_password_options'):
-        # Show password options section when 'show_password_options' is True
-
-    #    options = ['Create Password', 'Change Password']
-    #    selection = st.radio(label= 'Select an option', options=options, horizontal=True)
-
-    #    if selection == 'Create Password':
-    #        st.session_state.update({'show_change_password_form': False})
-    #        st.session_state.update({'show_creation_form': True})
-    #    elif selection == 'Change Password':
-    #        st.session_state.update({'show_creation_form': False})
-    #        st.session_state.update({'show_change_password_form': True})
-
-    # Set Password section
-    # if st.session_state.get('show_set_password_form'):
-    #     st.markdown("# Set Password")
-
-    #     user_email = st.text_input("Enter your email address", key="user_email")
-    #     # Input fields for intended password and confirmation
-    #     intended_password = st.text_input("Enter your Password", type="password")
-    #     confirm_intended_password = st.text_input("Confirm your Password", type="password")
-
-    #     set_password_button = st.button("Set Password", key="set_password_button")
-
-    #     # When the change password button is clicked
-    #     if set_password_button:
-    #         if not valid_email(user_email):
-    #             st.error("Please enter a valid email address.")
-    #         else:
-    #             if intended_password and confirm_intended_password:
-    #                 if intended_password == confirm_intended_password:
-    #                     # Check if password is strong
-    #                     if (len(intended_password) >= 8 and
-    #                         any(char.isupper() for char in intended_password) and
-    #                         any(char.islower() for char in intended_password) and
-    #                         any(char.isdigit() for char in intended_password) and
-    #                         any(char in '!@#$%^&*()-_=+[]{}|;:,.<>?/`~' for char in intended_password)):
-
-    #                         # Hash and store password if strong
-    #                         hashed_password = hashlib.sha256(intended_password.encode()).hexdigest()
-    #                         if update_password(st.session_state['set_password_email'], hashed_password):
-    #                             st.success("Password successfully created!")
-    #                             time.sleep(2)
-    #                             st.switch_page("0_Home.py")
-    #                         else:
-    #                             st.error("Failed to set password.")
-    #                     else:
-    #                         st.error("Password must be at least 8 characters long and include an uppercase letter, \
-    #                                     a lowercase letter, a number, and a special character.")
-    #                 else:
-    #                     st.error("Passwords do not match. Please try again.")
-    #             else:
-    #                 st.error("Please fill in both password fields.")
 
     # Set password section
     if st.session_state.get('show_set_password_form'):

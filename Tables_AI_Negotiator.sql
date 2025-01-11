@@ -34,7 +34,7 @@ CREATE TABLE game (
     created_by VARCHAR(50) NOT NULL,                                      -- userID (university ID) of the professor that created the game, cannot be null
     game_name VARCHAR(100) NOT NULL,                                      -- Name of the game, cannot be null
     number_of_rounds SMALLINT NOT NULL,                                   -- Number of rounds in the game, cannot be null
-    num_inputs SMALLINT NOT NULL,                                         -- Number of input boxes in the game, cannot be null
+    name_roles VARCHAR(50) NOT NULL,                                      -- Names of the roles in the game, cannot be null
     game_academic_year SMALLINT NOT NULL,                                 -- Academic year related to the game, cannot be null
     game_class CHAR(1) NOT NULL,                                          -- Represents the class related to the game, such as 'A', 'B' or '_' (case where I want to consider all the classes in a certain academic year), cannot be null
     password VARCHAR(100) NOT NULL,                                       -- Hashed password to enter the game, cannot be null 
@@ -57,11 +57,15 @@ CREATE TABLE plays (
 -- round table
 CREATE TABLE round (
     game_id SERIAL,                                                       -- Foreign key linking to the game_id in the game table
-    round_number SMALLINT,                                                -- Number of the round in the game, cannot be null
-    group1_id SMALLINT,                                                   -- ID of the first group participating in the round, cannot be null
-    group2_id SMALLINT,                                                   -- ID of the second group participating in the round, cannot be null
-    score_group1 INTEGER NOT NULL,                                        -- Score of group 1 in a specific round, cannot be null
-    score_group2 INTEGER NOT NULL,                                        -- Score of group 2 in a specific round, cannot be null
-    PRIMARY KEY(game_id, round_number, group1_id, group2_id),             -- Set game_id, round_number, group1_id, and group2_id as the composite primary keys
+    round_number SMALLINT NOT NULL,                                       -- Number of the round in the game, cannot be null
+    group1_class CHAR(1) NOT NULL, 					                      -- Class of the first group participating in the round, cannot be null
+    group1_id SMALLINT NOT NULL,                                          -- ID of the first group participating in the round, cannot be null
+    group2_class CHAR(1) NOT NULL,                                        -- Class of the second group participating in the round, cannot be null
+    group2_id SMALLINT NOT NULL,                                          -- ID of the second group participating in the round, cannot be null
+    score_team1_role1 FLOAT NOT NULL,                                     -- Score of team 1 in a specific round with role1, cannot be null
+    score_team2_role2 FLOAT NOT NULL,                                     -- Score of team 2 in a specific round with role2, cannot be null
+    score_team1_role2 FLOAT NOT NULL,                                     -- Score of team 1 in a specific round with role2, cannot be null
+    score_team2_role1 FLOAT NOT NULL,                                     -- Score of team 2 in a specific round with role1, cannot be null
+    PRIMARY KEY(game_id, round_number, group1_class, group1_id, group2_class, group2_id),     -- Set game_id, round_number, group1_class, group1_id,  group2_class and group2_id as the composite primary keys
     FOREIGN KEY(game_id) REFERENCES game(game_id)                         -- Foreign key linking to the game_id in the game table
 );
