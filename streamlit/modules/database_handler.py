@@ -131,41 +131,49 @@ def get_game_by_id(game_id):
     except Exception:
         return False
 
-# Function to fetch game data
-def fetch_games_data():
+# Function to get all unique academic years or games linked with a specific academic year
+def fetch_games_data(academic_year=None, get_academic_years=False):
     try:
         with psycopg2.connect(DB_CONNECTION_STRING) as conn:
             with conn.cursor() as cur:
+                
+                if get_academic_years:
+                    # Query to get unique academic years
+                    query1 = "SELECT DISTINCT game_academic_year FROM game ORDER BY game_academic_year DESC;"
 
-                query = """
-                    SELECT game_id, available, created_by, game_name, number_of_rounds, \
-                            num_inputs, game_academic_year, game_class, password, timestamp_game_creation, timestamp_submission_deadline 
-                    FROM game;
+                    cur.execute(query1)
+
+                    return [row[0] for row in cur.fetchall()]
+
+                # Query to fetch games for a specific academic year
+                query2 = """
+                    SELECT game_id, game_name, game_class, available, created_by, number_of_rounds, 
+                           num_inputs, game_academic_year, password, timestamp_game_creation, timestamp_submission_deadline
+                    FROM game
+                    WHERE game_academic_year = %(param1)s
+                    ORDER BY game_id DESC;
                 """
-        
-                cur.execute(query)
+                
+                cur.execute(query2, {'param1': academic_year})
 
                 games_data = cur.fetchall()
-                if games_data:
-                    games = []
-                    for row in games_data:
-                        game = {
-                            "game_id": row[0],
-                            "available": row[1],
-                            "created_by": row[2],
-                            "game_name": row[3],
-                            "number_of_rounds": row[4],
-                            "num_inputs": row[5],
-                            "game_academic_year": row[6],
-                            "game_class": row[7],
-                            "password": row[8],
-                            "timestamp_game_creation": row[9],
-                            "timestamp_submission_deadline": row[10]
-                        }
-                        games.append(game)
-            
-                    return games
-                return []
+                
+                return [
+                    {
+                        "game_id": row[0],
+                        "game_name": row[1],
+                        "game_class": row[2],
+                        "available": row[3],
+                        "created_by": row[4],
+                        "number_of_rounds": row[5],
+                        "num_inputs": row[6],
+                        "game_academic_year": row[7],
+                        "password": row[8],
+                        "timestamp_game_creation": row[9],
+                        "timestamp_submission_deadline": row[10]
+                    }
+                    for row in games_data
+                ]
     
     except Exception:
         return []
@@ -181,7 +189,8 @@ def fetch_current_games_data_by_user_id(sign, user_id):
                     FROM game g JOIN plays p 
                         ON g.game_id = p.game_id                
                     WHERE (p.user_id =  %(param1)s 
-                    AND CURRENT_TIMESTAMP {sign} g.timestamp_submission_deadline); """
+                    AND CURRENT_TIMESTAMP {sign} g.timestamp_submission_deadline)
+                    ORDER BY g.game_id DESC; """
         
                 cur.execute(query , {'param1': user_id})
 
@@ -365,9 +374,9 @@ def remove_student(user_id):
         with psycopg2.connect(DB_CONNECTION_STRING) as conn:
             with conn.cursor() as cur:
 
-                query = "DELETE FROM user_ WHERE user_id = %s;"
+                query = "DELETE FROM user_ WHERE user_id = %(param1)s;"
 
-                cur.execute(query, (user_id,))
+                cur.execute(query, {'param1': user_id})
          
                 return True
             
@@ -540,9 +549,9 @@ def is_valid_professor_email(email):
         with psycopg2.connect(DB_CONNECTION_STRING) as conn:
             with conn.cursor() as cur:
                 
-                query = "SELECT EXISTS(SELECT 1 FROM user_ WHERE email = %s);"
+                query = "SELECT EXISTS(SELECT 1 FROM user_ WHERE email = %(param1)s);"
 
-                cur.execute(query, (email,))
+                cur.execute(query, {'param1': email})
                 
                 # Fetch the result
                 exists = cur.fetchone()[0]
@@ -563,10 +572,10 @@ def is_professor(email):
                                   SELECT 1 
                                   FROM professor AS p JOIN user_ AS u
                                     ON p.user_id = u.user_id
-                                  WHERE email = %s);
+                                  WHERE email = %(param1)s);
                 """
 
-                cur.execute(query, (email,))
+                cur.execute(query, {'param1': email})
                 
                 # Fetch the result
                 is_prof = cur.fetchone()[0]
@@ -586,10 +595,10 @@ def exists_user(email):
                     SELECT EXISTS(
                                   SELECT 1 
                                   FROM user_ 
-                                  WHERE email = %s);
+                                  WHERE email = %(param1)s);
                 """
 
-                cur.execute(query, (email,))
+                cur.execute(query, {'param1': email})
                 
                 # Fetch the result
                 exists = cur.fetchone()[0]
@@ -623,9 +632,9 @@ def get_user_id_by_email(email):
         with psycopg2.connect(DB_CONNECTION_STRING) as conn:
             with conn.cursor() as cur:
                 
-                query = "SELECT user_id FROM user_ WHERE email = %s;"
+                query = "SELECT user_id FROM user_ WHERE email = %(param1)s;"
 
-                cur.execute(query, (email,))
+                cur.execute(query, {'param1': email})
                 
                 # Fetch the result
                 user_id = cur.fetchone()[0]

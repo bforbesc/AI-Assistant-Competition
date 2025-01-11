@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 import time
-from datetime import datetime
+from datetime import datetime, timedelta
 import random
 import re
 from st_aggrid import GridOptionsBuilder, AgGrid, GridUpdateMode, ColumnsAutoSizeMode
@@ -319,8 +319,14 @@ if st.session_state['authenticated']:
                             game_class = "_"  # No class selected
 
                         password = st.text_input("Game Password (4-digit)", type="password", max_chars=4, key="password")
-                        deadline_date = st.date_input("Submission Deadline Date", key="deadline_date")
-                        deadline_time = st.time_input("Submission Deadline Time", key="deadline_time")
+
+                        # Calculate default date and time
+                        default_date = datetime.today().date() + timedelta(weeks=1)
+                        default_time = datetime.strptime("23:59", "%H:%M").time()
+
+                        # Create Streamlit inputs with defaults
+                        deadline_date = st.date_input("Submission Deadline Date", value=default_date, key="deadline_date")
+                        deadline_time = st.time_input("Submission Deadline Time", value=default_time, key="deadline_time")
 
                         # Submit button for creating the game
                         submit_button = st.form_submit_button("Create Game")
@@ -383,16 +389,37 @@ if st.session_state['authenticated']:
 
                     if not st.session_state.edit_game:
 
-                        # Fetch the list of games from the database
-                        games = fetch_games_data()
+                        # Fetch unique academic years
+                        possible_years = fetch_games_data(get_academic_years=True)
 
-                        if games != []:
-                            # Streamlit sidebar selectbox for games
-                            game_names = [game['game_name'] for game in games]
-                            selected_game_name = st.sidebar.selectbox("Select a Game", game_names)
+                        # Sidebar selectbox for academic year selection
+                        selected_year = st.sidebar.selectbox("Select the Academic Year", possible_years)
+
+                        # Fetch games for the selected academic year
+                        games_for_selected_year = fetch_games_data(academic_year=selected_year)
+
+                        if games_for_selected_year != []:
+                            # Generate game names with class suffixes
+                            game_names_with_classes = [
+                                f"{game['game_name']}{'' if game['game_class'] == '_' else (' - Class ' + game['game_class'])}"
+                                for game in games_for_selected_year
+                            ]
+
+                            # Sidebar selectbox for game selection
+                            selected_game_with_classes = st.sidebar.selectbox("Select a Game", game_names_with_classes)
+
+                            # Extract game_name and game_class from selected_game_with_classes
+                            if " - Class " in selected_game_with_classes:
+                                selected_game_name, selected_game_class = selected_game_with_classes.split(" - Class ")
+                            else:
+                                selected_game_name = selected_game_with_classes
+                                selected_game_class = "_"
 
                             # Find the selected game
-                            selected_game = next((game for game in games if game['game_name'] == selected_game_name), None)
+                            selected_game = next(
+                                (game for game in games_for_selected_year if game['game_name'] == selected_game_name and game['game_class'] == selected_game_class),
+                                None
+                            )
 
                             if selected_game:
                                 st.subheader(f"Details for {selected_game['game_name']}")
@@ -452,13 +479,17 @@ if st.session_state['authenticated']:
                         # Get academic year and class combinations
                         academic_year_class_combinations = get_academic_year_class_combinations()
 
-                        # Flatten combinations into display-friendly strings (e.g., "2023-A")
-                        combination_options = [
-                            f"{year}-{cls}" for year, classes in academic_year_class_combinations.items() for cls in classes
-                        ]
+                        # Create options list with both years and year-class combinations
+                        combination_options = []
+                        for year, classes in academic_year_class_combinations.items():
+                            combination_options.append(f"{year}")  # Add the year itself
+                            combination_options.extend([f"{year} - {cls}" for cls in classes])  # Add year-class combinations
 
                         # Preselect the stored academic year-class combination
-                        stored_combination = f"{game_academic_year_stored}-{game_class_stored}"
+                        if game_class_stored != "_":
+                            stored_combination = f"{game_academic_year_stored} - {game_class_stored}"
+                        else: 
+                            stored_combination = f"{game_academic_year_stored}"
 
                         with st.form("game_edit_form"):
                             # Game details
@@ -476,7 +507,14 @@ if st.session_state['authenticated']:
                             )
 
                             # Extract academic year and class from the selected combination
-                            game_academic_year_edit, game_class_edit = selected_combination_edit.split("-")
+                            game_academic_year_edit, game_class_edit = selected_combination_edit.replace(" ", "").split("-")
+
+                            # Extract academic year and class from the selected combination
+                            if "-" in selected_combination_edit:
+                                game_academic_year, game_class = selected_combination_edit.replace(" ", "").split("-")
+                            else:
+                                game_academic_year = selected_combination_edit
+                                game_class = "_"  # No class selected
 
                             password_edit = st.text_input("Game Password (4-digit)", type="password", max_chars=4, key="password_edit", value=password_stored)
                             deadline_date_edit = st.date_input("Submission Deadline Date", key="deadline_date_edit", value=deadline_date_stored)
@@ -516,12 +554,39 @@ if st.session_state['authenticated']:
                             st.rerun()
 
                 case "Run Simulation":
-                    games = fetch_games_data()
-                    if games != []:
-                        game_names = [game['game_name'] for game in games]
-                        selected_game_name = st.sidebar.selectbox("Select a Game", game_names)
 
-                        selected_game = next((game for game in games if game['game_name'] == selected_game_name), None)
+                    # Fetch unique academic years
+                    possible_years = fetch_games_data(get_academic_years=True)
+
+                    # Sidebar selectbox for academic year selection
+                    selected_year = st.sidebar.selectbox("Select the Academic Year", possible_years)
+
+                    # Fetch games for the selected academic year
+                    games_for_selected_year = fetch_games_data(academic_year=selected_year)
+
+                    if games_for_selected_year != []:
+                        # Generate game names with class suffixes
+                        game_names_with_classes = [
+                            f"{game['game_name']}{'' if game['game_class'] == '_' else (' - Class ' + game['game_class'])}"
+                            for game in games_for_selected_year
+                        ]
+
+                        # Sidebar selectbox for game selection
+                        selected_game_with_classes = st.sidebar.selectbox("Select a Game", game_names_with_classes)
+
+                        # Extract game_name and game_class from selected_game_with_classes
+                        if " - Class " in selected_game_with_classes:
+                            selected_game_name, selected_game_class = selected_game_with_classes.split(" - Class ")
+                        else:
+                            selected_game_name = selected_game_with_classes
+                            selected_game_class = "_"
+
+                        # Find the selected game
+                        selected_game = next(
+                            (game for game in games_for_selected_year if game['game_name'] == selected_game_name and game['game_class'] == selected_game_class),
+                            None
+                        )
+                        
                         game_id = selected_game['game_id']
 
                         teams = get_group_ids_from_game_id(game_id)
@@ -564,11 +629,38 @@ if st.session_state['authenticated']:
                         st.write('There are no available games.')
 
                 case "Game Data":
-                    games = fetch_games_data()
-                    if games != []:
-                        game_names = [game['game_name'] for game in games]
-                        selected_game_name = st.sidebar.selectbox("Select a Game", game_names)
-                        selected_game = next((game for game in games if game['game_name'] == selected_game_name), None)
+
+                    # Fetch unique academic years
+                    possible_years = fetch_games_data(get_academic_years=True)
+
+                    # Sidebar selectbox for academic year selection
+                    selected_year = st.sidebar.selectbox("Select the Academic Year", possible_years)
+
+                    # Fetch games for the selected academic year
+                    games_for_selected_year = fetch_games_data(academic_year=selected_year)
+                    
+                    if games_for_selected_year != []:
+                        # Generate game names with class suffixes
+                        game_names_with_classes = [
+                            f"{game['game_name']}{'' if game['game_class'] == '_' else (' - Class ' + game['game_class'])}"
+                            for game in games_for_selected_year
+                        ]
+
+                        # Sidebar selectbox for game selection
+                        selected_game_with_classes = st.sidebar.selectbox("Select a Game", game_names_with_classes)
+
+                        # Extract game_name and game_class from selected_game_with_classes
+                        if " - Class " in selected_game_with_classes:
+                            selected_game_name, selected_game_class = selected_game_with_classes.split(" - Class ")
+                        else:
+                            selected_game_name = selected_game_with_classes
+                            selected_game_class = "_"
+
+                        # Find the selected game
+                        selected_game = next(
+                            (game for game in games_for_selected_year if game['game_name'] == selected_game_name and game['game_class'] == selected_game_class),
+                            None
+                        )
 
                         game_id = selected_game['game_id']
                         professor_id = selected_game['created_by']
