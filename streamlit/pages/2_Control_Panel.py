@@ -5,10 +5,10 @@ from datetime import datetime, timedelta
 import random
 import re
 from st_aggrid import GridOptionsBuilder, AgGrid, GridUpdateMode, ColumnsAutoSizeMode
-from modules.database_handler import populate_plays_table, insert_student_data, remove_student, store_game_in_db, update_game_in_db, update_num_rounds_game, update_access_to_chats
-from modules.database_handler import get_academic_year_class_combinations, get_game_by_id, fetch_games_data, get_next_game_id, get_students_from_db, get_group_ids_from_game_id, get_round_data
-from modules.drive_file_manager import overwrite_text_file, get_text_from_file, upload_text_as_file, get_text_from_file_without_timestamp
-from modules.negotiations import create_chats
+from modules.database_handler import populate_plays_table, insert_student_data, remove_student, store_game_in_db, update_game_in_db, update_num_rounds_game, update_access_to_chats, delete_from_round
+from modules.database_handler import get_academic_year_class_combinations, get_game_by_id, fetch_games_data, get_next_game_id, get_students_from_db, get_group_ids_from_game_id, get_round_data, get_error_matchups
+from modules.drive_file_manager import overwrite_text_file, get_text_from_file, upload_text_as_file, get_text_from_file_without_timestamp, find_and_delete 
+from modules.negotiations import create_chats, create_all_error_chats
 
 # ---------------------------- SET THE DEFAULT SESSION STATE FOR ALL CASES ------------------------------- #
 
@@ -76,8 +76,8 @@ if st.session_state['authenticated']:
         if sign_out_btn:
             for key in list(st.session_state.keys()):
                 del st.session_state[key]
-            time.sleep(2)
             st.cache_resource.clear()
+            time.sleep(2)
             st.switch_page("0_Home.py")  # Redirect to home page
 
     # Check if the user is a professor
@@ -85,13 +85,13 @@ if st.session_state['authenticated']:
 
         # Handle different actions for the professor
         if st.session_state.action == "Select Option":
-            st.header("Select Option")
-            st.write("Welcome, Professor! Please select an option.")
+            st.header("Control Panel")
+            st.write("Welcome, Professor!")
 
             # Action selection dropdown
             c1, _ = st.columns([3, 2])
-            selected_option = c1.selectbox("Select Option", ["Student Management", "Create Game", "Available Games",
-                                                             "Run Simulation" , "Game Data", "Leaderboard and Performance", "Security"])
+            selected_option = c1.selectbox("Please select what you would like to do:", ["Student Management", "Create Game", "Available Games",
+                                                                                        "Run Simulation" , "Game Data", "Leaderboard"])
 
             if st.button("Select"):
                 st.session_state.action = selected_option  # Update session state only when the button is clicked
@@ -284,25 +284,18 @@ if st.session_state['authenticated']:
                         # Game details
                         game_name = st.text_input("Game Name", max_chars=100, key="game_name")
                         game_explanation = st.text_area("Game Explanation", key="explanation")
-                        num_roles = st.number_input(
-                            "Number of Roles", min_value=1, max_value=2, step=1, value=2, key="num_roles"
-                        )
+                
+                        col1, col2 = st.columns(2)
+                        with col1: name_roles_1 = st.text_input("Name of Buyer Role", value = 'Buyer')
+                        with col2: name_roles_2 = st.text_input("Name of Seller Role", value = 'Seller')
 
                         st.write('')
                         col1, col2, col3, col4 = st.columns(4)
-
-                        with col1:
-                            param1 = st.number_input("Minimum Buy Value", min_value=0, step=1, value=9)
-
-                        with col2:
-                            param2 = st.number_input("Maximum Buy Value", min_value=0, step=1, value=11)
-
-                        with col3:
-                            param3 = st.number_input("Minimum Sell Value", min_value=0, step=1, value=19)
-
-                        with col4:
-                            param4 = st.number_input("Maximum Sell Value", min_value=0, step=1, value=21,
-                                help='These values are relevant only when the Number of Roles is set to 2. All values are expressed in thousands.')
+                        with col1: param1 = st.number_input("Minimum Buy Value", min_value=0, step=1, value=9)
+                        with col2: param2 = st.number_input("Maximum Buy Value", min_value=0, step=1, value=11)
+                        with col3: param3 = st.number_input("Minimum Sell Value", min_value=0, step=1, value=19)
+                        with col4: param4 = st.number_input("Maximum Sell Value", min_value=0, step=1, value=21,
+                                                     help='All values are expressed in thousands.')
 
                         # Academic year and class selection
                         selected_combination = st.selectbox(
@@ -334,8 +327,8 @@ if st.session_state['authenticated']:
                     # Submit button for creating the game
                     if submit_button:
                         #if create_game_button:
-                        if game_name and game_explanation and num_roles and game_academic_year and \
-                            game_class and password and deadline_date and deadline_time:
+                        if game_name and game_explanation and name_roles_1 and name_roles_2 and selected_combination and \
+                            param1 and param2 and param3 and param4 and password and deadline_date and deadline_time:
                             try:
                                 # Retrieve user ID from session state
                                 user_id = st.session_state.get('user_id')
@@ -346,13 +339,16 @@ if st.session_state['authenticated']:
                                 timestamp_game_creation = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
                                 # Store the Game explanation in Google Drive
-                                upload_text_as_file(game_explanation, f"{user_id}_{next_game_id}_{timestamp_game_creation}")
+                                upload_text_as_file(game_explanation, f"Explanation_{user_id}_{next_game_id}_{timestamp_game_creation}")
 
                                 # Combine the date and time into a single datetime object
                                 submission_deadline = datetime.combine(deadline_date, deadline_time)
 
+                                # Concatenate both names of roles using a security pattern between them
+                                name_roles = name_roles_1 + '#_;:)' + name_roles_2
+
                                 # Store other details in the database
-                                store_game_in_db(next_game_id, 0, user_id, game_name, -1, num_roles, game_academic_year,
+                                store_game_in_db(next_game_id, 0, user_id, game_name, -1, name_roles, game_academic_year,
                                                    game_class, password, timestamp_game_creation, submission_deadline)
                                 
                                 # Populate the 'plays' table with eligible students
@@ -361,15 +357,14 @@ if st.session_state['authenticated']:
                                     time.sleep(2)
                                     error.empty()
                                 
-                                if num_roles==2:
-                                    different_groups_classes = get_group_ids_from_game_id(next_game_id)
-                                    text = ''
-                                    for i in different_groups_classes:
-                                        buy_value = int(round(random.uniform(param1*1000, param2*1000), -2))
-                                        sell_value = int(round(random.uniform(param3*1000, param4*1000), -2))
-                                        text += f"{i[0]},{i[1]},{buy_value},{sell_value}\n"
+                                different_groups_classes = get_group_ids_from_game_id(next_game_id)
+                                text = f'{param1*1000},{param2*1000},{param3*1000},{param4*1000}\n'
+                                for i in different_groups_classes:
+                                    buy_value = int(round(random.uniform(param1*1000, param2*1000), -2))
+                                    sell_value = int(round(random.uniform(param3*1000, param4*1000), -2))
+                                    text += f'{i[0]},{i[1]},{buy_value},{sell_value}\n'
 
-                                    upload_text_as_file(text, f"{user_id}_{next_game_id}_Values")
+                                upload_text_as_file(text, f"Values_{user_id}_{next_game_id}_{timestamp_game_creation}")
 
                                 success = st.success("Game created successfully!")
                                 time.sleep(2)
@@ -393,7 +388,7 @@ if st.session_state['authenticated']:
                         possible_years = fetch_games_data(get_academic_years=True)
 
                         # Sidebar selectbox for academic year selection
-                        selected_year = st.sidebar.selectbox("Select the Academic Year", possible_years)
+                        selected_year = st.sidebar.selectbox("Select Academic Year", possible_years)
 
                         # Fetch games for the selected academic year
                         games_for_selected_year = fetch_games_data(academic_year=selected_year)
@@ -406,7 +401,7 @@ if st.session_state['authenticated']:
                             ]
 
                             # Sidebar selectbox for game selection
-                            selected_game_with_classes = st.sidebar.selectbox("Select a Game", game_names_with_classes)
+                            selected_game_with_classes = st.sidebar.selectbox("Select Game", game_names_with_classes)
 
                             # Extract game_name and game_class from selected_game_with_classes
                             if " - Class " in selected_game_with_classes:
@@ -421,36 +416,77 @@ if st.session_state['authenticated']:
                                 None
                             )
 
-                            if selected_game:
-                                st.subheader(f"Details for {selected_game['game_name']}")
-                                st.write(f"**Game ID**: {selected_game['game_id']}")
-                                st.write(f"**Available**: {selected_game['available']}")
-                                st.write(f"**Created By**: {selected_game['created_by']}")
-                                st.write(f"**Number of Rounds**: {selected_game['number_of_rounds']}")
-                                st.write(f"**Number of Roles**: {selected_game['num_inputs']}")
-                                st.write(f"**Academic Year related to the Game**: {selected_game['game_academic_year']}")
-                                st.write(f"**Class related to the Game**: {selected_game['game_class']}")
-                                st.write(f"**Password**: {selected_game['password']}")
-                                st.write(f"**Creation Time**: {selected_game['timestamp_game_creation']}")
-                                st.write(f"**Submission Deadline**: {selected_game['timestamp_submission_deadline']}")
+                            radio = st.sidebar.radio('See Game:', ['Details', 'Simulation Params'], horizontal=True)
 
-                                # Retrieve user ID from session state
-                                user_id = st.session_state.get('user_id')
+                            if radio == 'Details':
 
-                                # Get the Game explanation from Google Drive using the filename
-                                game_explanation = get_text_from_file_aux(f"{selected_game['created_by']}_{selected_game['game_id']}_{selected_game['timestamp_game_creation']}")
-                                if game_explanation:
-                                    st.write(f"**Game Explanation**: {game_explanation}")
-                                else:
-                                    st.write("No explanation found for this game.")
+                                if selected_game:
+
+                                    values = get_text_from_file(f"Values_{selected_game['created_by']}_{selected_game['game_id']}_{selected_game['timestamp_game_creation']}.txt")
+                                    if values: 
+                                        values = values.split('\n')
+                                        values = [item.split(',') for item in values if item]
+                                        params = list(map(int, values[0]))
+
+                                    st.subheader(f"Details of {selected_game['game_name']}")
+                                    st.write(f"**Game ID**: {selected_game['game_id']}")
+                                    st.write(f"**Available**: {selected_game['available']}")
+                                    st.write(f"**Created By**: {selected_game['created_by']}")
+                                    st.write(f"**Number of Rounds**: {selected_game['number_of_rounds'] if selected_game['number_of_rounds'] != -1 else 'TBD'}")
+                                    st.write(f"**Academic Year**: {selected_game['game_academic_year']}")
+                                    st.write(f"**Class**: {selected_game['game_class']}")
+                                    st.write("")
+                                    col1, col2 = st.columns(2)
+                                    with col1: st.write(f"**Name of Buyer Role**: {selected_game['name_roles'].split('#_;:)')[0]}")
+                                    with col2: st.write(f"**Name of Seller Role**: {selected_game['name_roles'].split('#_;:)')[1]}")
+                                    col1, col2= st.columns(2)
+                                    with col1: st.write(f"**Minimum Buy Value**: {params[0]}")
+                                    with col2: st.write(f"**Minimum Sell Value**: {params[2]}")
+                                    col1, col2= st.columns(2)
+                                    with col1: st.write(f"**Maximum Buy Value**: {params[1]}")
+                                    with col2: st.write(f"**Maximum Sell Value**: {params[3]}")
+                                    st.write("")
+                                    st.write(f"**Password**: {selected_game['password']}")
+                                    st.write(f"**Creation Time**: {selected_game['timestamp_game_creation']}")
+                                    st.write(f"**Submission Deadline**: {selected_game['timestamp_submission_deadline']}")
+
+                                    # Retrieve user ID from session state
+                                    user_id = st.session_state.get('user_id')
+
+                                    # Get the Game explanation from Google Drive using the filename
+                                    game_explanation = get_text_from_file(f"Explanation_{selected_game['created_by']}_{selected_game['game_id']}_{selected_game['timestamp_game_creation']}.txt")
+                                    if game_explanation:
+                                        st.write(f"**Game Explanation**: {game_explanation}")
+                                    else:
+                                        st.write("No explanation found for this game.")
+                                    
+                                    game_id = selected_game['game_id']
+                                    edit_game_button = st.button("Edit Game")
+                                    st.session_state.update({'game_id': game_id})
+
+                                    if edit_game_button:
+                                        st.session_state.edit_game = True
+                                        st.rerun()
+
+                            elif radio == 'Simulation Params':
+
+                                st.subheader(f'Simulation Parameters of {selected_game_with_classes}')
+                                simulation_params_names = ['Model', 'Conversation Starter', 'Starting Message', 'Number of Turns', 'Negotiation Termination Message', 'Negotiation Summary Prompt', 'Summary Termination Message']
                                 
-                                game_id = selected_game['game_id']
-                                edit_game_button = st.button("Edit Game")
-                                st.session_state.update({'game_id': game_id})
+                                # here we do not save the result in cache on purpose
+                                simulation_params = get_text_from_file_without_timestamp(f'Simulation_{selected_game["created_by"]}_{selected_game["game_id"]}')
+                                if simulation_params:
+                                    simulation_params = simulation_params.split('\n')                               
+                                    name_roles = selected_game['name_roles'].split('#_;:)')
+                                    name_roles_1, name_roles_2 = name_roles[0], name_roles[1]
+                                    if simulation_params[1]=='same': simulation_params[1] = f'{name_roles_1} ➡ {name_roles_2}'
+                                    else: simulation_params[1] = f'{name_roles_2} ➡ {name_roles_1}'
+                                
+                                    for i in range(len(simulation_params_names)):
+                                        st.write(f'**{simulation_params_names[i]}**: {simulation_params[i]}')
 
-                                if edit_game_button:
-                                    st.session_state.edit_game = True
-                                    st.rerun()
+                                else: st.write('No simulation run yet.')
+                                    
                         else:
                             st.write("There are no available games.")
                     else:
@@ -459,11 +495,11 @@ if st.session_state['authenticated']:
                         game_details = get_game_by_id(game_id)
 
                         if game_details:
-                            available_stored = game_details["available"]
                             created_by_stored = game_details["created_by"]
                             game_name_stored = game_details["game_name"]
                             number_of_rounds_stored = game_details["number_of_rounds"]
-                            num_roles_stored = game_details["num_inputs"]
+                            name_roles_1_stored = game_details["name_roles"].split('#_;:)')[0]
+                            name_roles_2_stored = game_details["name_roles"].split('#_;:)')[1]
                             game_academic_year_stored = game_details["game_academic_year"]
                             game_class_stored = game_details["game_class"]
                             password_stored = game_details["password"]
@@ -471,8 +507,14 @@ if st.session_state['authenticated']:
                             deadline_date_stored = game_details["timestamp_submission_deadline"].date()
                             deadline_time_stored = game_details["timestamp_submission_deadline"].time()
 
+                            values_stored = get_text_from_file(f'Values_{created_by_stored}_{game_id}_{timestamp_game_creation_stored}.txt')
+                            if values_stored: 
+                                values_stored = values_stored.split('\n')
+                                values_stored = [item.split(',') for item in values_stored if item]
+                                params_stored = list(map(int, values_stored[0]))
+
                             # Fetch Game explanation from Google Drive
-                            game_explanation_stored = get_text_from_file_aux(f"{created_by_stored}_{game_id}_{timestamp_game_creation_stored}")
+                            game_explanation_stored = get_text_from_file(f"Explanation_{created_by_stored}_{game_id}_{timestamp_game_creation_stored}.txt")
                         else:
                             st.error("Game not found.")
 
@@ -495,9 +537,22 @@ if st.session_state['authenticated']:
                             # Game details
                             game_name_edit = st.text_input("Game Name", max_chars=100, key="game_name_edit", value=game_name_stored)
                             game_explanation_edit = st.text_area("Game Explanation", key="explanation_edit", value=game_explanation_stored)
-                            available_edit = st.number_input("Available", min_value=0, max_value=1, step=1, key="available_edit", value=available_stored)
-                            num_roles_edit = st.number_input("Number of Roles", min_value=1, max_value=2, step=1, key="num_roles_edit", value=num_roles_stored)
+                            
+                            col1, col2 = st.columns(2)
+                            with col1:
+                                name_roles_1_edit = st.text_input("Name of Buyer Role", key="name_roles_1_edit", value=name_roles_1_stored)
+                            
+                            with col2:
+                                name_roles_2_edit = st.text_input("Name of Seller Role", key="name_roles_2_edit", value=name_roles_2_stored)
 
+                            st.write('')
+                            col1, col2, col3, col4 = st.columns(4)
+                            with col1: param1_edit = st.number_input("Minimum Buy Value", min_value=0, step=1, value=int(params_stored[0]/1000))
+                            with col2: param2_edit = st.number_input("Maximum Buy Value", min_value=0, step=1, value=int(params_stored[1]/1000))
+                            with col3: param3_edit = st.number_input("Minimum Sell Value", min_value=0, step=1, value=int(params_stored[2]/1000))
+                            with col4: param4_edit = st.number_input("Maximum Sell Value", min_value=0, step=1, value=int(params_stored[3]/1000),
+                                                     help='All values are expressed in thousands.')
+                            
                             # Academic year-class combination selection
                             selected_combination_edit = st.selectbox(
                                 "Select Academic Year and Class",
@@ -507,14 +562,11 @@ if st.session_state['authenticated']:
                             )
 
                             # Extract academic year and class from the selected combination
-                            game_academic_year_edit, game_class_edit = selected_combination_edit.replace(" ", "").split("-")
-
-                            # Extract academic year and class from the selected combination
                             if "-" in selected_combination_edit:
-                                game_academic_year, game_class = selected_combination_edit.replace(" ", "").split("-")
+                                game_academic_year_edit, game_class_edit = selected_combination_edit.replace(" ", "").split("-")
                             else:
-                                game_academic_year = selected_combination_edit
-                                game_class = "_"  # No class selected
+                                game_academic_year_edit = selected_combination_edit
+                                game_class_edit = "_"  # No class selected
 
                             password_edit = st.text_input("Game Password (4-digit)", type="password", max_chars=4, key="password_edit", value=password_stored)
                             deadline_date_edit = st.date_input("Submission Deadline Date", key="deadline_date_edit", value=deadline_date_stored)
@@ -525,33 +577,55 @@ if st.session_state['authenticated']:
 
                         # Handle form submission
                         if submit_button:
-                            if available_edit and game_name_edit and game_explanation_edit and num_roles_edit and \
-                                game_academic_year_edit and game_class_edit and password_edit and deadline_date_edit and deadline_time_edit:
+                            if  game_name_edit and game_explanation_edit and name_roles_1_edit and name_roles_2_edit and \
+                                selected_combination_edit and password_edit and deadline_date_edit and deadline_time_edit:
                                 try:
                                     # Overwrite file in Google Drive
-                                    overwrite_text_file(game_explanation_edit, f"{created_by_stored}_{game_id}_{timestamp_game_creation_stored}")
-
+                                    overwrite_text_file(game_explanation_edit, f"Explanation_{created_by_stored}_{game_id}_{timestamp_game_creation_stored}")
+ 
                                     # Combine the date and time into a single datetime object
                                     submission_deadline = datetime.combine(deadline_date_edit, deadline_time_edit)
+ 
+                                    # Concatenate both names of roles using a security pattern between them
+                                    name_roles_edit = name_roles_1_edit + '#_;:)' + name_roles_2_edit
 
                                     # Update other details in the database
-                                    update_game_in_db(game_id, available_edit, created_by_stored, game_name_edit, -1, num_roles_edit, game_academic_year_edit,
+                                    update_game_in_db(game_id, created_by_stored, game_name_edit, -1, name_roles_edit, game_academic_year_edit,
                                                         game_class_edit, password_edit, timestamp_game_creation_stored, submission_deadline)
                                     
                                     # Populate the 'plays' table with eligible students (after update)
                                     if not populate_plays_table(game_id, game_academic_year_edit, game_class_edit):
                                         st.error("An error occurred while assigning students to the game.")
 
+                                    # Handling Values.txt
+                                    different_groups_classes = get_group_ids_from_game_id(game_id)
+                                    if game_class_stored == game_class_edit and str(game_academic_year_stored) == game_academic_year_edit:
+                                        if params_stored[0]==param1_edit*1000 and params_stored[1]==param2_edit*1000 and params_stored[2]==param3_edit*1000 and params_stored[3]==param4_edit*1000:
+                                            pass
+                                        else:
+                                            text = f'{param1_edit*1000},{param2_edit*1000},{param3_edit*1000},{param4_edit*1000}\n'
+                                            for i in different_groups_classes:
+                                                buy_value = int(round(random.uniform(param1_edit*1000, param2_edit*1000), -2))
+                                                sell_value = int(round(random.uniform(param3_edit*1000, param4_edit*1000), -2))
+                                                text += f'{i[0]},{i[1]},{buy_value},{sell_value}\n'
+                                            overwrite_text_file(text, f'Values_{created_by_stored}_{game_id}_{timestamp_game_creation_stored}')
+                                            
+                                    else: 
+                                        text = f'{param1_edit*1000},{param2_edit*1000},{param3_edit*1000},{param4_edit*1000}\n'
+                                        for i in different_groups_classes:
+                                            buy_value = int(round(random.uniform(param1_edit*1000, param2_edit*1000), -2))
+                                            sell_value = int(round(random.uniform(param3_edit*1000, param4_edit*1000), -2))
+                                            text += f'{i[0]},{i[1]},{buy_value},{sell_value}\n'
+                                        overwrite_text_file(text, f'Values_{created_by_stored}_{game_id}_{timestamp_game_creation_stored}')
+
                                     st.success("Game changed successfully!")
                                     
                                 except Exception:
                                     st.error(f"An error occurred. Please try again.")
                             else:
-                                st.error("Please fill out all fields before submitting.")
-                            st.session_state.edit_game = False
-                            st.session_state.action = "Available Games"
-                            time.sleep(2)
-                            st.rerun()
+                                warning = st.warning("Please fill out all fields before submitting.")
+                                time.sleep(2)
+                                warning.empty()
 
                 case "Run Simulation":
 
@@ -559,7 +633,7 @@ if st.session_state['authenticated']:
                     possible_years = fetch_games_data(get_academic_years=True)
 
                     # Sidebar selectbox for academic year selection
-                    selected_year = st.sidebar.selectbox("Select the Academic Year", possible_years)
+                    selected_year = st.sidebar.selectbox("Select Academic Year", possible_years)
 
                     # Fetch games for the selected academic year
                     games_for_selected_year = fetch_games_data(academic_year=selected_year)
@@ -572,7 +646,7 @@ if st.session_state['authenticated']:
                         ]
 
                         # Sidebar selectbox for game selection
-                        selected_game_with_classes = st.sidebar.selectbox("Select a Game", game_names_with_classes)
+                        selected_game_with_classes = st.sidebar.selectbox("Select Game", game_names_with_classes)
 
                         # Extract game_name and game_class from selected_game_with_classes
                         if " - Class " in selected_game_with_classes:
@@ -588,43 +662,131 @@ if st.session_state['authenticated']:
                         )
                         
                         game_id = selected_game['game_id']
+                        created_by = selected_game['created_by']
+                        timestamp_game_creation = selected_game['timestamp_game_creation']
+                        name_roles = selected_game['name_roles'].split('#_;:)')
+                        name_roles_1, name_roles_2 = name_roles[0], name_roles[1]
 
-                        teams = get_group_ids_from_game_id(game_id)
+                        values = get_text_from_file(f'Values_{created_by}_{game_id}_{timestamp_game_creation}.txt')
+                        if values:
+                            values = values.split('\n')
+                            values = [item.split(',') for item in values if item]
 
-                        missing_submissions = ''
-                        for i in teams:
-                            prompts = get_text_from_file_without_timestamp_aux(f'Game{game_id}_Class{i[0]}_Group{i[1]}')
-                            if not prompts: 
-                                missing_submissions += f' Class{i[0]}-Group{i[1]},'
-                        
-                        if len(missing_submissions) > 0:
-                            missing_submissions = missing_submissions[:-1]
-                            st.warning(f'''Attention: Not all groups have submitted their prompts yet.\n
-                                          Missing submissions from:{missing_submissions}.''')
-                        
-                        with st.form(key='my_form'):
-                            api_key = st.text_input('API Key', value=1)
-                            model = st.selectbox('OpenAI Model', ['gpt-4o', 'gpt-4o-mini'])
-                            temperature = 0# st.number_input('Temperature', min_value=0.0, max_value=1.0, value=0.0)
-                            num_rounds =  st.number_input('Number of Rounds', step=1, min_value=1, value=1, max_value=len(teams)-1)
-                            if selected_game['num_inputs']==2:
-                                conversation_starter = st.radio('Conversation Starter', ['Buyer > Seller', 'Seller > Buyer'], horizontal=True)
-                            starting_message =  st.text_input('Starting Messsage', value='I want to buy this car.')
-                            num_turns =  st.number_input('Number of Turns', step=1, min_value=1, value=5)
-                            negotiation_termination_message = st.text_input('Negotiation Termination Message', value='Pleasure doing business with you')
-                            summary_prompt = st.text_input('Negotiation Summary Prompt', value='For how much was the car sold?')
-                            summary_termination_message = st.text_input('Summary Termination Message', value='The value agreed was')
+                        radio = st.sidebar.radio('Run:', ['Simulation', 'Error Chats'], horizontal=True)
 
-                            submit_button = st.form_submit_button(label='Run')
+                        if radio == 'Simulation':
 
-                        if submit_button:
-                            update_num_rounds_game(num_rounds, game_id)
-                            config_list = [{"api_key": api_key, "model": model, "temperature": temperature}]
-                            #create_chats(game_id, config_list, teams, num_rounds, starting_message, num_turns, negotiation_termination_message, summary_prompt, summary_termination_message)
-                            success = st.success('All negotiations successfully created.')
-                            time.sleep(3)
-                            success.empty()
+                            teams = get_group_ids_from_game_id(game_id)
+                            
+                            missing_submissions = ''
+                            to_remove = []
+                            for i in teams:
+                                prompts = get_text_from_file_without_timestamp_aux(f'Game{game_id}_Class{i[0]}_Group{i[1]}')
+                                if not prompts: 
+                                    to_remove.append(i) 
+                                    missing_submissions += f' Class{i[0]}-Group{i[1]},'
+                            
+                            if len(missing_submissions) > 0:
+                                missing_submissions = missing_submissions[:-1]
+                                st.warning(f'''Attention: Not all groups have submitted their prompts yet.\n
+                                            Missing submissions from:{missing_submissions}.''')
+                            
+                            for i in to_remove:
+                                teams.remove(i)
+                                
+                            if (len(teams)>=2):
+                                st.warning('''Attention:  Running a new simulation will erase all previous data related to the game. 
+                                           This includes all group chats and all group scores.''')
+                                with st.form(key='my_form'):
+                                    api_key = st.text_input('API Key', value=1)
+                                    model = st.selectbox('OpenAI Model', ['gpt-4o-mini', 'gpt-4o'])
+                                    num_rounds =  st.number_input('Number of Rounds', step=1, min_value=1, value=1, max_value=len(teams)-1)
+                                    conversation_starter = st.radio('Conversation Starter', [f'{name_roles_1} ➡ {name_roles_2}', f'{name_roles_2} ➡ {name_roles_1}'], horizontal=True)
+                                    starting_message =  st.text_input('Starting Messsage', value='I want to buy this car.')
+                                    num_turns =  st.number_input('Number of Turns', step=1, min_value=1, value=15)
+                                    negotiation_termination_message = st.text_input('Negotiation Termination Message', value='Pleasure doing business with you')
+                                    summary_prompt = st.text_input('Negotiation Summary Prompt', value='For how much was the car sold?')
+                                    summary_termination_message = st.text_input('Summary Termination Message', value='The value agreed was')
 
+                                    submit_button = st.form_submit_button(label='Run')
+
+                                if submit_button:
+
+                                    if api_key and model and num_rounds and conversation_starter and starting_message and num_turns and negotiation_termination_message and summary_prompt and summary_termination_message:
+                                        
+                                        round_data = get_round_data(game_id)
+                                        for i in round_data:
+                                            find_and_delete(f'Game{game_id}_Round{i[0]}_Class{i[1]}_Group{i[2]}_Class{i[3]}_Group{i[4]}.txt')
+                                            find_and_delete(f'Game{game_id}_Round{i[0]}_Class{i[3]}_Group{i[4]}_Class{i[1]}_Group{i[2]}.txt')
+                                        delete_from_round(game_id)
+                                        
+                                        order = 'same' if conversation_starter.split(' ➡ ') == name_roles else 'opposite'
+                                        simulation_content = model + '\n' + order + '\n' + starting_message + '\n' + str(num_turns) + '\n' + negotiation_termination_message + '\n' + summary_prompt + '\n' + summary_termination_message
+                                        overwrite_text_file(simulation_content, f"Simulation_{created_by}_{game_id}_{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+                                  
+                                        update_num_rounds_game(num_rounds, game_id)  
+
+                                        config_list = {"config_list" : [{"model": model, "api_key": api_key}], "temperature": 0.3, "top_p": 0.5}
+                                        
+                                        outcome_simulation = create_chats(game_id, config_list, name_roles, order, teams, values, num_rounds, starting_message, num_turns, negotiation_termination_message, summary_prompt, summary_termination_message)
+                                        if outcome_simulation == "All negotiations were completed successfully!":
+                                            success = st.success(outcome_simulation)
+                                            time.sleep(2)
+                                            success.empty()
+                                        else: 
+                                            warning = st.warning(outcome_simulation)
+
+                                    else:
+                                        warning = st.warning("Please fill out all fields before submitting.")
+                                        time.sleep(2)
+                                        warning.empty()
+                            else: 
+                                st.write('There must be at least two submissions in order to run a simulation.')
+
+                        elif radio == 'Error Chats':
+
+                            st.subheader('Error Chats')
+                            
+                            if get_error_matchups(game_id):
+                                error_message = "The following negotiations were unsuccessful:\n\n"
+                                for match in get_error_matchups(game_id):
+                                    if match[3]==1:
+                                        error_message += f"- Round {match[0]} - Class{match[1][0]}_Group{match[1][1]} ({name_roles_1}) vs Class{match[2][0]}_Group{match[2][1]} ({name_roles_2});\n"
+                                    if match[4]==1:
+                                        error_message += f"- Round {match[0]} - Class{match[2][0]}_Group{match[2][1]} ({name_roles_1}) vs Class{match[1][0]}_Group{match[1][1]} ({name_roles_2});\n"
+                                st.warning(error_message)
+
+                                with st.form(key='my_form2'):
+                                    api_key = st.text_input('API Key', value=1)
+                                    model = st.selectbox('OpenAI Model', ['gpt-4o-mini', 'gpt-4o'])
+                                    submit_button = st.form_submit_button(label='Run')
+
+                                if submit_button:
+                                    if api_key and model:                            
+                                        simulation_params = get_text_from_file_without_timestamp(f'Simulation_{created_by}_{game_id}')
+                                        simulation_params = simulation_params.split('\n')    
+                                        simulation_params[3] = int(simulation_params[3])     
+                                        
+                                        config_list = {"config_list" : [{"model": model, "api_key": api_key}], "temperature": 0.3, "top_p": 0.5}
+
+                                        outcome_errors_simulation = create_all_error_chats(game_id, config_list, name_roles, simulation_params[1], values, simulation_params[2], simulation_params[3], simulation_params[4], simulation_params[5], simulation_params[6])                 
+                                        if outcome_errors_simulation == "All negotiations were completed successfully!":
+                                            success = st.success(outcome_errors_simulation)
+                                            time.sleep(2)
+                                            success.empty()
+                                            st.rerun()
+                                        else: 
+                                            warning = st.warning(outcome_errors_simulation)
+                                            time.sleep(2)
+                                            warning.empty()
+                                            st.rerun()
+
+                                    else:
+                                        warning = st.warning("Please fill out all fields before submitting.")
+                                        time.sleep(2)
+                                        warning.empty()
+
+                            else: st.write('No error chats found.')
                     else:
                         st.write('There are no available games.')
 
@@ -634,7 +796,7 @@ if st.session_state['authenticated']:
                     possible_years = fetch_games_data(get_academic_years=True)
 
                     # Sidebar selectbox for academic year selection
-                    selected_year = st.sidebar.selectbox("Select the Academic Year", possible_years)
+                    selected_year = st.sidebar.selectbox("Select Academic Year", possible_years)
 
                     # Fetch games for the selected academic year
                     games_for_selected_year = fetch_games_data(academic_year=selected_year)
@@ -647,7 +809,7 @@ if st.session_state['authenticated']:
                         ]
 
                         # Sidebar selectbox for game selection
-                        selected_game_with_classes = st.sidebar.selectbox("Select a Game", game_names_with_classes)
+                        selected_game_with_classes = st.sidebar.selectbox("Select Game", game_names_with_classes)
 
                         # Extract game_name and game_class from selected_game_with_classes
                         if " - Class " in selected_game_with_classes:
@@ -666,6 +828,8 @@ if st.session_state['authenticated']:
                         professor_id = selected_game['created_by']
                         num_rounds = selected_game['number_of_rounds']
                         game_timestamp = selected_game['timestamp_game_creation'] 
+                        name_roles = selected_game['name_roles'].split('#_;:)')
+                        name_roles_1, name_roles_2 = name_roles[0], name_roles[1]
 
                         teams = get_group_ids_from_game_id(game_id)
 
@@ -674,9 +838,9 @@ if st.session_state['authenticated']:
 
                         st.header(f"{selected_game_name}")
 
-                        with st.expander("Explanation"):
+                        with st.expander("**Explanation**"):
                             # Get the Game explanation from Google Drive using the filename
-                            game_explanation = get_text_from_file_aux(f'{professor_id}_{game_id}_{game_timestamp}')
+                            game_explanation = get_text_from_file(f'Explanation_{professor_id}_{game_id}_{game_timestamp}.txt')
                             if game_explanation:
                                 st.write(f"{game_explanation}")
                             else:
@@ -695,8 +859,10 @@ if st.session_state['authenticated']:
 
                                     # Expandable section for viewing prompts
                                     if prompts:
-                                        with st.expander(f"View Prompts"):
-                                            st.write(prompts)
+                                        with st.expander("**View Prompts**"):
+                                            prompts = prompts.split('#_;:)')
+                                            st.write(f'**{name_roles_1}:** {prompts[0].strip()}')
+                                            st.write(f'**{name_roles_2}:** {prompts[1].strip()}')
                                     else:
                                         st.write(f"No submission found.")
 
@@ -715,7 +881,7 @@ if st.session_state['authenticated']:
                                     if access_disabled: 
                                         update_access_to_chats(0, selected_game['game_id'])
                                         success = st.success('Student Access successfully disabled.')
-                                        time.sleep(3)
+                                        time.sleep(2)
                                         success.empty()
                                         st.rerun()
                                 
@@ -725,12 +891,12 @@ if st.session_state['authenticated']:
                                     if access_enabled: 
                                         update_access_to_chats(1, selected_game['game_id'])
                                         success = st.success('Student Access successfully enabled.')
-                                        time.sleep(3)
+                                        time.sleep(2)
                                         success.empty()
                                         st.rerun()
 
                                 # Extract unique round numbers
-                                unique_rounds = sorted(set(round_ for round_, _, _, _, _, _, _, in round_data))
+                                unique_rounds = sorted(set(round_ for round_, _, _, _, _, _, _, _, _ in round_data))
 
                                 round_options = [f"Round {round_}" for round_ in unique_rounds]
                                 selected_round_label = st.sidebar.selectbox("Select Round", round_options)
@@ -741,7 +907,7 @@ if st.session_state['authenticated']:
                                 st.markdown(f"### Round {selected_round_number}")
 
                                 # Ensure unique round-teams combinations
-                                unique_round_teams = [(class_1, team_1, class_2, team_2) for round_, class_1, team_1, class_2, team_2, _, _, in round_data if round_ == selected_round_number ]  
+                                unique_round_teams = [(class_1, team_1, class_2, team_2) for round_, class_1, team_1, class_2, team_2, _, _, _, _ in round_data if round_ == selected_round_number]  
 
                                 for class_1, team_1, class_2, team_2 in unique_round_teams:
 
@@ -751,12 +917,12 @@ if st.session_state['authenticated']:
 
                                     # Create an expander only if the chat exists
                                     
-                                    with st.expander(f"**Class {class_1} - Group {team_1} (Buyer) vs Class {class_2} - Group {team_2} (Seller)**"):
-                                        if chat_buyer: st.write(chat_buyer)
+                                    with st.expander(f"**Class {class_1} - Group {team_1} ({name_roles_1}) vs Class {class_2} - Group {team_2} ({name_roles_2})**"):
+                                        if chat_buyer: st.write(chat_buyer.replace('$', '\$'))
                                         else: st.write('Chat not found.')                                            
 
-                                    with st.expander(f"**Class {class_1} - Group {team_1} (Seller) vs Class {class_2} - Group {team_2} (Buyer)**"):
-                                        if chat_seller: st.write(chat_seller)
+                                    with st.expander(f"**Class {class_1} - Group {team_1} ({name_roles_2}) vs Class {class_2} - Group {team_2} ({name_roles_1})**"):
+                                        if chat_seller: st.write(chat_seller.replace('$', '\$'))
                                         else: st.write('Chat not found.') 
 
                             else: 
@@ -765,14 +931,13 @@ if st.session_state['authenticated']:
                     else: 
                         st.write('There are no available games.')    
 
-                case "Leaderboard and Performance":
-                    st.write("To be implemented.")
-
-                case "Security":
+                case "Leaderboard":
                     st.write("To be implemented.")
                     
     else:
+        st.header("Control Panel")
         st.write('Page accessible only to Professors.')
 
 else:
-    st.write('Please Login first (Page accessible only to Professors.)')
+    st.header("Control Panel")
+    st.write('Please Login first. (Page accessible only to Professors)')

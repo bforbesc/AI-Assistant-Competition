@@ -41,12 +41,14 @@ if not st.session_state['authenticated']:
     # Set session state value for email if not already set
     if 'login_email' not in st.session_state:
         st.session_state['login_email'] = ''  # or some default value
+    
+    st.title('AI Assistant Competition')
 
-    st.markdown("# Login")
+    st.header("Login")
     
     # Input fields for email and password
-    email = st.text_input("Email", value=st.session_state['login_email'])
-    password = st.text_input("Password", type="password", value=st.session_state['login_password'])
+    email = st.text_input("**Email**", value=st.session_state['login_email'])
+    password = st.text_input("**Password**", type="password", value=st.session_state['login_password'])
 
     # Create columns to place the buttons
     col1, col2 = st.columns([5, 1])
@@ -84,11 +86,11 @@ if not st.session_state['authenticated']:
 
     # Set password section
     if st.session_state.get('show_set_password_form'):
-        st.markdown("# Set Password")
+        st.header("Set Password")
 
         set_password_email = st.text_input("Enter your email address", key="set_password_email", value=st.session_state['set_password_email'])
 
-        set_password_button = st.button("Set the Password")
+        set_password_button = st.button("Set Password")
 
         if set_password_button:
             if valid_email(st.session_state['set_password_email']):
@@ -160,10 +162,20 @@ else:
         sign_out_btn = st.button("Sign Out", key="sign_out", use_container_width=True)
 
         if sign_out_btn:
-            st.session_state.update({'authenticated': False})
-            st.session_state.update({'login_email': ""})
-            st.session_state.update({'login_password': ""})
+            for key in list(st.session_state.keys()):
+                del st.session_state[key]
+            st.cache_resource.clear()
             time.sleep(2)
             st.switch_page("0_Home.py")
 
-    st.write("""This is the home page of the app where we will briefly explain what it consists of.""")
+    st.title('AI Assistant Competition')
+
+    st.write(f'Welcome, {st.session_state.user_id}!')
+
+    st.markdown("""
+                Here's a brief overview of the content of each section of the app:
+                - **Play**: Submit prompts for ongoing games, and check chats and the leaderboard of previous games.
+                - **Control Panel**: A dedicated page accessible only to professors for administrative tasks.
+                - **Profile**: Manage personal information and update your password.
+                - **About**: Learn more about the app's authors and contributors.
+                """)

@@ -103,7 +103,7 @@ def get_game_by_id(game_id):
 
                 query = """
                     SELECT available, created_by, game_name, number_of_rounds, 
-                           num_inputs, game_academic_year, game_class, password, timestamp_game_creation, 
+                           name_roles, game_academic_year, game_class, password, timestamp_game_creation, 
                            timestamp_submission_deadline 
                     FROM game
                     WHERE game_id = %s;
@@ -119,7 +119,7 @@ def get_game_by_id(game_id):
                         "created_by": result[1],
                         "game_name": result[2],
                         "number_of_rounds": result[3],
-                        "num_inputs": result[4],
+                        "name_roles": result[4],
                         "game_academic_year": result[5],
                         "game_class": result[6],
                         "password": result[7],
@@ -148,7 +148,7 @@ def fetch_games_data(academic_year=None, get_academic_years=False):
                 # Query to fetch games for a specific academic year
                 query2 = """
                     SELECT game_id, game_name, game_class, available, created_by, number_of_rounds, 
-                           num_inputs, game_academic_year, password, timestamp_game_creation, timestamp_submission_deadline
+                           name_roles, game_academic_year, password, timestamp_game_creation, timestamp_submission_deadline
                     FROM game
                     WHERE game_academic_year = %(param1)s
                     ORDER BY game_id DESC;
@@ -166,7 +166,7 @@ def fetch_games_data(academic_year=None, get_academic_years=False):
                         "available": row[3],
                         "created_by": row[4],
                         "number_of_rounds": row[5],
-                        "num_inputs": row[6],
+                        "name_roles": row[6],
                         "game_academic_year": row[7],
                         "password": row[8],
                         "timestamp_game_creation": row[9],
@@ -204,7 +204,7 @@ def fetch_current_games_data_by_user_id(sign, user_id):
                             "created_by": row[2],
                             "game_name": row[3],
                             "number_of_rounds": row[4],
-                            "num_inputs": row[5],
+                            "name_roles": row[5],
                             "game_academic_year": row[6],
                             "game_class": row[7],
                             "password": row[8],
@@ -237,14 +237,14 @@ def get_next_game_id():
         return False
     
 # Function to update game details in the database
-def update_game_in_db(game_id, created_by, game_name, number_of_rounds, num_inputs, game_academic_year, game_class, password, timestamp_game_creation, submission_deadline):
+def update_game_in_db(game_id, created_by, game_name, number_of_rounds, name_roles, game_academic_year, game_class, password, timestamp_game_creation, submission_deadline):
     try:
         with psycopg2.connect(DB_CONNECTION_STRING) as conn:
             with conn.cursor() as cur:
 
                 query1 = """
                     UPDATE game
-                    SET created_by = %(param1)s, game_name = %(param2)s, number_of_rounds = %(param3)s, num_inputs = %(param4)s,
+                    SET created_by = %(param1)s, game_name = %(param2)s, number_of_rounds = %(param3)s, name_roles = %(param4)s,
                         game_academic_year = %(param5)s, game_class = %(param6)s, password = %(param7)s, timestamp_game_creation = %(param8)s, 
                         timestamp_submission_deadline = %(param9)s
                     WHERE game_id = %(param10)s;
@@ -254,7 +254,7 @@ def update_game_in_db(game_id, created_by, game_name, number_of_rounds, num_inpu
                     'param1': created_by, 
                     'param2': game_name, 
                     'param3': number_of_rounds, 
-                    'param4': num_inputs,
+                    'param4': name_roles,
                     'param5': game_academic_year,
                     'param6': game_class,
                     'param7': password, 
@@ -307,13 +307,13 @@ def update_access_to_chats(access, game_id):
         return False
 
 # Function to store game details in the database
-def store_game_in_db(game_id, available, created_by, game_name, number_of_rounds, num_inputs, game_academic_year, game_class, password, timestamp_game_creation, submission_deadline):
+def store_game_in_db(game_id, available, created_by, game_name, number_of_rounds, name_roles, game_academic_year, game_class, password, timestamp_game_creation, submission_deadline):
     try:
         with psycopg2.connect(DB_CONNECTION_STRING) as conn:
             with conn.cursor() as cur:
 
                 query = """
-                    INSERT INTO game (game_id, available, created_by, game_name, number_of_rounds, num_inputs, game_academic_year, game_class, password, timestamp_game_creation, timestamp_submission_deadline)
+                    INSERT INTO game (game_id, available, created_by, game_name, number_of_rounds, name_roles, game_academic_year, game_class, password, timestamp_game_creation, timestamp_submission_deadline)
                     VALUES (%(param1)s, %(param2)s, %(param3)s, %(param4)s, %(param5)s, %(param6)s, %(param7)s, %(param8)s, %(param9)s, %(param10)s, %(param11)s);
                 """
 
@@ -323,7 +323,7 @@ def store_game_in_db(game_id, available, created_by, game_name, number_of_rounds
                     'param3': created_by, 
                     'param4': game_name, 
                     'param5': number_of_rounds, 
-                    'param6': num_inputs, 
+                    'param6': name_roles, 
                     'param7': game_academic_year,
                     'param8': game_class,
                     'param9': password, 
@@ -374,8 +374,10 @@ def remove_student(user_id):
         with psycopg2.connect(DB_CONNECTION_STRING) as conn:
             with conn.cursor() as cur:
 
-                query = "DELETE FROM user_ WHERE user_id = %(param1)s;"
+                query = "DELETE FROM plays WHERE user_id = %(param1)s;"
+                cur.execute(query, {'param1': user_id})
 
+                query = "DELETE FROM user_ WHERE user_id = %(param1)s;"
                 cur.execute(query, {'param1': user_id})
          
                 return True
@@ -412,7 +414,7 @@ def get_students_from_db():
         return False
 
 # Function to insert email and OTP into the user table
-def insert_student_data(user_id, email, group_id, temp_password, academic_year, class_):
+def insert_student_data(user_id, email, temp_password, group_id, academic_year, class_):
     try:
         with psycopg2.connect(DB_CONNECTION_STRING) as conn:
             with conn.cursor() as cur:
@@ -430,21 +432,21 @@ def insert_student_data(user_id, email, group_id, temp_password, academic_year, 
                     'param5': academic_year,
                     'param6': class_
                 })
-         
+
                 return True
             
     except Exception:
         return False
 
 # Function to insert round data into the 'round' table
-def insert_round_data(game_id, round_number, group1_class, group1_id, group2_class, group2_id, score_group1, score_group2):
+def insert_round_data(game_id, round_number, group1_class, group1_id, group2_class, group2_id, score_team1_role1, score_team2_role2, score_team1_role2, score_team2_role1):
     try:
         with psycopg2.connect(DB_CONNECTION_STRING) as conn:
             with conn.cursor() as cur:
 
                 query = """
-                    INSERT INTO round (game_id, round_number, group1_class, group1_id, group2_class, group2_id, score_group1, score_group2)
-                    VALUES (%(param1)s, %(param2)s, %(param3)s, %(param4)s, %(param5)s, %(param6)s, %(param7)s, %(param8)s);
+                    INSERT INTO round (game_id, round_number, group1_class, group1_id, group2_class, group2_id, score_team1_role1, score_team2_role2, score_team1_role2, score_team2_role1)
+                    VALUES (%(param1)s, %(param2)s, %(param3)s, %(param4)s, %(param5)s, %(param6)s, %(param7)s, %(param8)s, %(param9)s, %(param10)s);
                 """
 
                 cur.execute(query, {
@@ -454,8 +456,10 @@ def insert_round_data(game_id, round_number, group1_class, group1_id, group2_cla
                     'param4': group1_id, 
                     'param5': group2_class, 
                     'param6': group2_id, 
-                    'param7': score_group1, 
-                    'param8': score_group2,
+                    'param7': score_team1_role1, 
+                    'param8': score_team2_role2,
+                    'param9': score_team1_role2, 
+                    'param10': score_team2_role1,
                 })
          
                 return True
@@ -469,7 +473,7 @@ def get_round_data(game_id):
         with psycopg2.connect(DB_CONNECTION_STRING) as conn:
             with conn.cursor() as cur:
 
-                query = '''SELECT round_number, group1_class, group1_id, group2_class, group2_id, score_group1, score_group2
+                query = '''SELECT round_number, group1_class, group1_id, group2_class, group2_id, score_team1_role1, score_team2_role2, score_team1_role2, score_team2_role1
                            FROM round WHERE game_id=%(param1)s;'''
 
                 cur.execute(query,{
@@ -668,5 +672,203 @@ def update_num_rounds_game(num_rounds, game_id):
 
                 return True
             
+    except Exception:
+        return False
+    
+# Function to extract from the 'round' table all the rows of a specific game where the chats were not successful 
+def get_error_matchups(game_id):
+    try:
+        with psycopg2.connect(DB_CONNECTION_STRING) as conn:
+            with conn.cursor() as cur:
+                
+                query1 = """
+                    SELECT round_number, group1_class, group1_id, group2_class, group2_id, score_team1_role1, score_team2_role2, score_team1_role2, score_team2_role1
+                    FROM round
+                    WHERE game_id = %(param1)s AND (score_team1_role1=-1 OR score_team1_role2=-1);
+                """
+
+                cur.execute(query1, {'param1': game_id})
+                error_matchups = cur.fetchall()
+
+                error_matchups_final = []
+                for i in error_matchups:
+                    aux_1 = [i[0]]
+                    aux_2 = [list(i[1:3])]
+                    aux_3 = [list(i[3:5])]
+                    aux_4 = [1] if i[5]==-1 else [0]
+                    aux_5 = [1] if i[7]==-1 else [0]
+                    error_matchups_final.append(aux_1+aux_2+aux_3+aux_4+aux_5)
+
+                return error_matchups_final
+            
+    except Exception:
+        return False
+    
+# Function to update the scores of a specific row in the 'round' table
+def update_round_data(game_id, round_number, group1_class, group1_id, group2_class, group2_id, score_team1, score_team2, order):
+    try:
+        with psycopg2.connect(DB_CONNECTION_STRING) as conn:
+            with conn.cursor() as cur:
+
+                if order == 'same':
+
+                    query1 = """
+                        UPDATE round
+                        SET score_team1_role1 = %(param7)s, score_team2_role2 = %(param8)s
+                        WHERE game_id = %(param1)s AND round_number = %(param2)s AND group1_class = %(param3)s AND group1_id = %(param4)s AND group2_class = %(param5)s AND group2_id = %(param6)s;
+                    """
+
+                    cur.execute(query1, {
+                        'param1': game_id, 
+                        'param2': round_number, 
+                        'param3': group1_class, 
+                        'param4': group1_id,
+                        'param5': group2_class,
+                        'param6': group2_id,
+                        'param7': score_team1, 
+                        'param8': score_team2
+                    })
+
+                    return True
+                
+                if order == 'opposite':
+
+                    query1 = """
+                        UPDATE round
+                        SET score_team1_role2 = %(param7)s, score_team2_role1 = %(param8)s
+                        WHERE game_id = %(param1)s AND round_number = %(param2)s AND group1_class = %(param3)s AND group1_id = %(param4)s AND group2_class = %(param5)s AND group2_id = %(param6)s;
+                    """
+
+                    cur.execute(query1, {
+                        'param1': game_id, 
+                        'param2': round_number, 
+                        'param3': group1_class, 
+                        'param4': group1_id,
+                        'param5': group2_class,
+                        'param6': group2_id,
+                        'param7': score_team1, 
+                        'param8': score_team2
+                    })     
+
+                    return True
+            
+    except Exception:
+        return False
+    
+# Function to delete all the rows in the 'round' table that belong to a specific game_id
+def delete_from_round(game_id):
+    try:
+        with psycopg2.connect(DB_CONNECTION_STRING) as conn:
+            with conn.cursor() as cur:
+                
+                query1 = """
+                    DELETE FROM round 
+                    WHERE game_id = %(param1)s;
+                """
+
+                cur.execute(query1, {'param1': game_id}) 
+
+                return True
+            
+    except Exception:
+        return False 
+    
+# The next four functions enable the Professor to view the Play section exactly as it appears to a student in a specific group
+# Function to get all the different academic years of students
+def get_academic_years_of_students():
+    try:
+        with psycopg2.connect(DB_CONNECTION_STRING) as conn:
+            with conn.cursor() as cur:
+
+                query = """
+                    SELECT DISTINCT u.academic_year
+                    FROM user_ AS u LEFT JOIN professor AS p 
+                        ON u.user_id = p.user_id
+                    WHERE p.user_id IS NULL
+                    ORDER BY u.academic_year DESC;
+                """
+
+                cur.execute(query)
+                academic_years_of_students = cur.fetchall()
+
+                academic_years_of_students_final = []
+                for i in academic_years_of_students: 
+                    academic_years_of_students_final.append(i[0])
+
+                return academic_years_of_students_final
+    
+    except Exception:
+        return False
+    
+# Function to get all the different classes of students from a specfic academic year
+def get_classes_of_students(academic_year):
+    try:
+        with psycopg2.connect(DB_CONNECTION_STRING) as conn:
+            with conn.cursor() as cur:
+
+                query = """
+                    SELECT DISTINCT u.class
+                    FROM user_ AS u LEFT JOIN professor AS p 
+                        ON u.user_id = p.user_id
+                    WHERE p.user_id IS NULL AND u.academic_year = %(param1)s
+                    ORDER BY u.class ASC;
+                """
+
+                cur.execute(query, {'param1': academic_year})
+                classes_of_students = cur.fetchall()
+
+                classes_of_students_final = []
+                for i in classes_of_students: 
+                    classes_of_students_final.append(i[0])
+
+                return classes_of_students_final
+    
+    except Exception:
+        return False
+    
+# Function to get all the different groups of students from a specfic class of a specific academic year
+def get_groups_of_students(academic_year, class_):
+    try:
+        with psycopg2.connect(DB_CONNECTION_STRING) as conn:
+            with conn.cursor() as cur:
+
+                query = """
+                    SELECT DISTINCT u.group_id
+                    FROM user_ AS u LEFT JOIN professor AS p 
+                        ON u.user_id = p.user_id
+                    WHERE p.user_id IS NULL AND u.academic_year = %(param1)s AND u.class = %(param2)s
+                    ORDER BY u.group_id ASC;
+                """
+
+                cur.execute(query, {'param1': academic_year, 'param2': class_})
+                groups_of_students = cur.fetchall()
+
+                groups_of_students_final = []
+                for i in groups_of_students: 
+                    groups_of_students_final.append(i[0])
+
+                return groups_of_students_final
+    
+    except Exception:
+        return False
+    
+# Function to get the user_id of a student from a specific group of a specific class of a specific academic year
+def get_user_id_of_student(academic_year, class_, group_id):
+    try:
+        with psycopg2.connect(DB_CONNECTION_STRING) as conn:
+            with conn.cursor() as cur:
+
+                query = """
+                    SELECT u.user_id
+                    FROM user_ AS u LEFT JOIN professor AS p 
+                        ON u.user_id = p.user_id
+                    WHERE p.user_id IS NULL AND u.academic_year = %(param1)s AND u.class = %(param2)s AND u.group_id = %(param3)s
+                    ORDER BY u.group_id ASC;
+                """
+
+                cur.execute(query, {'param1': academic_year, 'param2': class_, 'param3': group_id})
+                user_id = cur.fetchone()[0]
+                return user_id
+
     except Exception:
         return False

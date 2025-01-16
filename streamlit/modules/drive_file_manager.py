@@ -140,20 +140,29 @@ def delete_file_by_id(file_id):
     print(f"File with ID '{file_id}' deleted successfully.")
 
 # Function to overwrite a file (check if exists, delete, then upload)
-def overwrite_text_file(text_content, filename):
-    # Extract base_filename (user_id_game_id) by removing the timestamp
-    base_filename = "_".join(filename.split("_")[:-1])
-
-    # Check if a file with the same name exists
-    file_id_to_delete = find_file_by_name_without_timestamp(base_filename)
+def overwrite_text_file(text_content, filename, remove_timestamp=True):
     
+    if remove_timestamp == True:
+        # Extract base_filename (user_id_game_id) by removing the timestamp
+        base_filename = "_".join(filename.split("_")[:-1])
+
+        # Check if a file with the same name exists
+        file_id_to_delete = find_file_by_name_without_timestamp(base_filename)
+    
+    elif remove_timestamp == False:
+        file_id_to_delete = find_file_by_name(filename)
+        filename = filename.split('.txt')[0]
+
     if file_id_to_delete:
         # Delete the existing file
         delete_file_by_id(file_id_to_delete)
-        print(f"Existing file '{base_filename}_..._.txt' deleted.")
-    else:
-        print(f"No existing file named '{filename}.txt' found.")
     
     # Upload the new file
     upload_text_as_file(text_content, filename)
     print(f"New file '{filename}.txt' uploaded successfully.")
+
+# Function to find and delete a file
+def find_and_delete(filename):
+    file_id_to_delete = find_file_by_name(filename)
+    if file_id_to_delete:
+        delete_file_by_id(file_id_to_delete)

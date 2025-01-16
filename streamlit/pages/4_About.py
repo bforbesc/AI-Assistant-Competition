@@ -10,19 +10,16 @@ if st.session_state['authenticated']:
         sign_out_btn = st.button("Sign Out", key="sign_out", use_container_width=True)
 
         if sign_out_btn:
-            st.session_state.update({'authenticated': False})
-            st.session_state.update({'login_email': ""})
-            st.session_state.update({'login_password': ""})
+            for key in list(st.session_state.keys()):
+                del st.session_state[key]
+            st.cache_resource.clear()
             time.sleep(2)
             st.switch_page("0_Home.py")
 
-    st.markdown("# About")
-    st.write(
-        """This is the about page of the app where we will provide deeper insights into how the app works,
-        offer references, and share information about the authors."""
-    )
+    st.header("About")
+
+    st.write('This app was developed by four MSc Data Science students from Instituto Superior Técnico, under the guidance of Professor Rodrigo Belo from Nova School of Business and Economics.')
 
 else:
-    st.write(
-        """Please Login first"""
-    )
+    st.header("About")
+    st.write('Please Login first.')
