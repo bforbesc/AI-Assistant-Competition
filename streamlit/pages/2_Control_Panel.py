@@ -6,7 +6,7 @@ import random
 import re
 from st_aggrid import GridOptionsBuilder, AgGrid, GridUpdateMode, ColumnsAutoSizeMode
 from modules.database_handler import populate_plays_table, insert_student_data, remove_student, store_game_in_db, update_game_in_db, update_num_rounds_game, update_access_to_chats, delete_from_round
-from modules.database_handler import get_academic_year_class_combinations, get_game_by_id, fetch_games_data, get_next_game_id, get_students_from_db, get_group_ids_from_game_id, get_round_data, get_error_matchups
+from modules.database_handler import get_academic_year_class_combinations, get_game_by_id, fetch_games_data, get_next_game_id, get_students_from_db, get_group_ids_from_game_id, get_round_data, get_error_matchups, fetch_and_compute_scores_for_year, fetch_and_compute_scores_for_year_game
 from modules.drive_file_manager import overwrite_text_file, get_text_from_file, upload_text_as_file, get_text_from_file_without_timestamp, find_and_delete 
 from modules.negotiations import create_chats, create_all_error_chats
 
@@ -128,7 +128,7 @@ if st.session_state['authenticated']:
                                 academic_year = row['academic year']
                                 class_ = row['class']
 
-                                if insert_student_data(user_id, email, group_id, "Not defined", academic_year, class_):
+                                if insert_student_data(user_id, email, "Not defined", group_id, academic_year, class_):
                                     continue
                                 else:
                                     return False
@@ -932,7 +932,129 @@ if st.session_state['authenticated']:
                         st.write('There are no available games.')    
 
                 case "Leaderboard":
-                    st.write("To be implemented.")
+                    
+                    # Fetch unique academic years
+                    possible_years = fetch_games_data(get_academic_years=True)
+
+                    # Sidebar selectbox for academic year selection
+                    selected_year = st.sidebar.selectbox("Select Academic Year", possible_years)
+
+                    if selected_year:
+                        # Fetch games for the selected academic year
+                        games_for_selected_year = fetch_games_data(academic_year=selected_year)
+
+                        if games_for_selected_year != []:
+                            # Generate game names with class suffixes
+                            game_names_with_classes = [
+                                f"{game['game_name']}{'' if game['game_class'] == '_' else (' - Class ' + game['game_class'])}"
+                                for game in games_for_selected_year
+                            ]
+
+                            # "None" as the default option
+                            game_names_with_classes.insert(0, "None")
+
+                            # Sidebar selectbox for game selection
+                            selected_game_with_classes = st.sidebar.selectbox("Select Game", game_names_with_classes)
+
+                            # If no game is selected, use fetch_and_compute_scores_for_year (based on year only)
+                            if selected_game_with_classes == "None":
+                                leaderboard = fetch_and_compute_scores_for_year(selected_year)
+                                
+                                if leaderboard and leaderboard != False: # Check for valid leaderboard data
+                                    
+                                    # Prepare the leaderboard data with all columns
+                                    leaderboard_with_position = [
+                                        {
+                                            "Class": row["team_class"],
+                                            "Group ID": row["team_id"],
+                                            "Team Score": row["average_score"],
+                                            "Position (as Buyer Role)": row["position_name_roles_1"],
+                                            "Score (as Buyer Role)": row["score_name_roles_1"],
+                                            "Position (as Seller Role)": row["position_name_roles_2"],
+                                            "Score (as Seller Role)": row["score_name_roles_2"],
+                                        }
+                                        for row in leaderboard
+                                    ]
+                                    
+                                    # Convert to a DataFrame for display
+                                    leaderboard_df = pd.DataFrame(
+                                        leaderboard_with_position, 
+                                        columns=[
+                                            "Class", 
+                                            "Group ID", 
+                                            "Team Score", 
+                                            "Position (as Buyer Role)",
+                                            "Score (as Buyer Role)",
+                                            "Position (as Seller Role)",
+                                            "Score (as Seller Role)"
+                                        ]
+                                    )
+
+                                    # Round the numerical columns to two decimal places
+                                    leaderboard_df["Team Score"] = leaderboard_df["Team Score"].round(2)
+                                    leaderboard_df["Score (as Buyer Role)"] = leaderboard_df["Score (as Buyer Role)"].round(2)
+                                    leaderboard_df["Score (as Seller Role)"] = leaderboard_df["Score (as Seller Role)"].round(2)
+
+                                    # Adjust the index to start from 1
+                                    leaderboard_df.index = leaderboard_df.index + 1
+
+                                    st.dataframe(leaderboard_df, use_container_width=True)
+                                else:
+                                    st.write("No leaderboard data available or an error occurred.")
+                            else:
+                                # Extract game_name and game_class from selected_game_with_classes
+                                if " - Class " in selected_game_with_classes:
+                                    selected_game_name, selected_game_class = selected_game_with_classes.split(" - Class ")
+                                else:
+                                    selected_game_name = selected_game_with_classes
+                                    selected_game_class = "_"
+
+                                # Fetch and compute the leaderboard for the selected year, game, and class
+                                leaderboard = fetch_and_compute_scores_for_year_game(selected_year, selected_game_name, selected_game_class)
+
+                                if leaderboard and leaderboard != False:  # Check for valid leaderboard data
+                                    
+                                    # Prepare the leaderboard data with all columns
+                                    leaderboard_with_position = [
+                                        {
+                                            "Class": row["team_class"],
+                                            "Group ID": row["team_id"],
+                                            "Team Score": row["average_score"],
+                                            "Position (as Buyer Role)": row["position_name_roles_1"],
+                                            "Score (as Buyer Role)": row["score_name_roles_1"],
+                                            "Position (as Seller Role)": row["position_name_roles_2"],
+                                            "Score (as Seller Role)": row["score_name_roles_2"],
+                                        }
+                                        for row in leaderboard
+                                    ]
+
+                                    # Convert to a DataFrame for display
+                                    leaderboard_df = pd.DataFrame(
+                                        leaderboard_with_position, 
+                                        columns=[
+                                            "Class", 
+                                            "Group ID", 
+                                            "Team Score", 
+                                            "Position (as Buyer Role)",
+                                            "Score (as Buyer Role)",
+                                            "Position (as Seller Role)",
+                                            "Score (as Seller Role)"
+                                        ]
+                                    )
+
+                                    # Round the numerical columns to two decimal places
+                                    leaderboard_df["Team Score"] = leaderboard_df["Team Score"].round(2)
+                                    leaderboard_df["Score (as Buyer Role)"] = leaderboard_df["Score (as Buyer Role)"].round(2)
+                                    leaderboard_df["Score (as Seller Role)"] = leaderboard_df["Score (as Seller Role)"].round(2)
+
+                                    # Adjust the index to start from 1
+                                    leaderboard_df.index = leaderboard_df.index + 1
+
+                                    st.dataframe(leaderboard_df, use_container_width=True)
+                                else:
+                                    st.write("No leaderboard data available or an error occurred.")
+                        else:
+                            st.write("There are no available games for the selected academic year.")
                     
     else:
         st.header("Control Panel")

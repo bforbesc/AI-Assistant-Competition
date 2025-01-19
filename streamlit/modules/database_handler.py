@@ -413,11 +413,22 @@ def get_students_from_db():
     except Exception:
         return False
 
-# Function to insert email and OTP into the user table
+# Function to insert email and into the user table
 def insert_student_data(user_id, email, temp_password, group_id, academic_year, class_):
     try:
         with psycopg2.connect(DB_CONNECTION_STRING) as conn:
             with conn.cursor() as cur:
+
+                # Check if user already exists
+                query = "SELECT EXISTS(SELECT 1 FROM user_ WHERE user_id = %(param1)s);"
+                
+                cur.execute(query, {'param1': user_id})
+
+                exists = cur.fetchone()[0]
+
+                # If exists, we do not add to the table user_
+                if exists:
+                    return True
 
                 query = """
                     INSERT INTO user_ (user_id, email, password, group_id, academic_year, class)
@@ -869,6 +880,248 @@ def get_user_id_of_student(academic_year, class_, group_id):
                 cur.execute(query, {'param1': academic_year, 'param2': class_, 'param3': group_id})
                 user_id = cur.fetchone()[0]
                 return user_id
+
+    except Exception:
+        return False
+
+# Function to get and compute leaderboard scores for a given academic year
+def fetch_and_compute_scores_for_year(selected_year):
+    try:
+        with psycopg2.connect(DB_CONNECTION_STRING) as conn:
+            with conn.cursor() as cur:
+
+                # SQL Query to compute the leaderboard
+                query = """
+                    WITH game_roles AS (
+                        SELECT 
+                            game_id, 
+                            split_part(name_roles, '#_;:)', 1) AS name_roles_1,
+                            split_part(name_roles, '#_;:)', 2) AS name_roles_2
+                        FROM game
+                        WHERE game_academic_year = %(param1)s
+                    ),
+                    computed_scores_only_year_roles AS (
+                        SELECT
+                            r.game_id,
+                            r.round_number,
+                            r.group1_class AS team_class,
+                            r.group1_id AS team_id,
+                            ((r.score_team1_role1 + r.score_team1_role2) / 2) AS score_team,
+                            gr.name_roles_1,
+                            gr.name_roles_2,
+                            r.score_team1_role1 AS score_role1,
+                            r.score_team1_role2 AS score_role2
+                        FROM round AS r
+                        JOIN game_roles AS gr ON r.game_id = gr.game_id
+                        JOIN game AS g ON r.game_id = g.game_id
+                        WHERE g.game_academic_year = %(param1)s
+
+                        UNION ALL
+
+                        SELECT
+                            r.game_id,
+                            r.round_number,
+                            r.group2_class AS team_class,
+                            r.group2_id AS team_id,
+                            ((r.score_team2_role1 + r.score_team2_role2) / 2) AS score_team,
+                            gr.name_roles_1,
+                            gr.name_roles_2,
+                            r.score_team2_role1 AS score_role1,
+                            r.score_team2_role2 AS score_role2
+                        FROM round AS r
+                        JOIN game_roles AS gr ON r.game_id = gr.game_id
+                        JOIN game AS g ON r.game_id = g.game_id
+                        WHERE g.game_academic_year = %(param2)s
+                    ),
+                    leaderboard_only_year AS (
+                        SELECT
+                            team_class,
+                            team_id,
+                            AVG(score_team) * 100 AS average_score
+                        FROM computed_scores_only_year_roles
+                        GROUP BY team_class, team_id
+                        ORDER BY average_score DESC
+                    ),
+                    aggregated_scores_roles AS (
+                        SELECT
+                            team_class,
+                            team_id,
+                            name_roles_1,
+                            name_roles_2,
+                            AVG(score_role1) * 100 AS average_score_role1,
+                            AVG(score_role2) * 100 AS average_score_role2
+                        FROM computed_scores_only_year_roles
+                        GROUP BY team_class, team_id, name_roles_1, name_roles_2
+                    ),
+                    leaderboard_roles AS (
+                        SELECT
+                            team_class,
+                            team_id,
+                            name_roles_1,
+                            name_roles_2,
+                            RANK() OVER (ORDER BY average_score_role1 DESC) AS position_name_roles_1,
+                            average_score_role1 AS score_name_roles_1,
+                            RANK() OVER (ORDER BY average_score_role2 DESC) AS position_name_roles_2,
+                            average_score_role2 AS score_name_roles_2
+                        FROM aggregated_scores_roles
+                        ORDER BY position_name_roles_1, position_name_roles_2
+                    )
+                    SELECT
+                        ly.team_class,
+                        ly.team_id,
+                        ly.average_score AS team_average_score,
+                        lr.position_name_roles_1,
+                        lr.score_name_roles_1,
+                        lr.position_name_roles_2,
+                        lr.score_name_roles_2
+                    FROM leaderboard_only_year AS ly
+                    JOIN leaderboard_roles AS lr
+                    ON ly.team_class = lr.team_class AND ly.team_id = lr.team_id
+                    ORDER BY ly.average_score DESC;
+                """
+
+                # Execute the query with the selected year
+                cur.execute(query, {'param1': selected_year, 'param2': selected_year})
+
+                # Fetch results
+                leaderboard = cur.fetchall()
+
+                # Format the results into a list of dictionaries
+                return [
+                    {
+                        "team_class": row[0],
+                        "team_id": row[1],
+                        "average_score": row[2],
+                        "position_name_roles_1": row[3],
+                        "score_name_roles_1": row[4],
+                        "position_name_roles_2": row[5],
+                        "score_name_roles_2": row[6],
+                    }
+                    for row in leaderboard
+                ]
+
+    except Exception:
+        return False
+    
+# Function to get and compute leaderboard scores for a given game and academic year
+def fetch_and_compute_scores_for_year_game(selected_year, selected_game_name, selected_game_class):
+    try:
+        with psycopg2.connect(DB_CONNECTION_STRING) as conn:
+            with conn.cursor() as cur:
+
+                # SQL Query to compute the leaderboard
+                query = """
+                    WITH game_roles AS (
+                        SELECT 
+                            game_id, 
+                            split_part(name_roles, '#_;:)', 1) AS name_roles_1,
+                            split_part(name_roles, '#_;:)', 2) AS name_roles_2
+                        FROM game
+                        WHERE game_academic_year = %(param1)s
+                    ),
+                    computed_scores_year_game_roles AS (
+                        SELECT
+                            r.game_id,
+                            r.round_number,
+                            r.group1_class AS team_class,
+                            r.group1_id AS team_id,
+                            ((r.score_team1_role1 + r.score_team1_role2) / 2) AS score_team,
+                            gr.name_roles_1,
+                            gr.name_roles_2,
+                            r.score_team1_role1 AS score_role1,
+                            r.score_team1_role2 AS score_role2
+                        FROM round AS r
+                        JOIN game_roles AS gr ON r.game_id = gr.game_id
+                        JOIN game AS g ON r.game_id = g.game_id
+                        WHERE g.game_academic_year = %(param1)s
+                        AND g.game_name = %(param2)s
+                        AND (g.game_class = %(param3)s OR g.game_class = '_')  -- Account for selected class or all classes
+
+                        UNION ALL
+
+                        SELECT
+                            r.game_id,
+                            r.round_number,
+                            r.group2_class AS team_class,
+                            r.group2_id AS team_id,
+                            ((r.score_team2_role1 + r.score_team2_role2) / 2) AS score_team,
+                            gr.name_roles_1,
+                            gr.name_roles_2,
+                            r.score_team2_role1 AS score_role1,
+                            r.score_team2_role2 AS score_role2
+                        FROM round AS r
+                        JOIN game_roles AS gr ON r.game_id = gr.game_id
+                        JOIN game AS g ON r.game_id = g.game_id
+                        WHERE g.game_academic_year = %(param1)s
+                        AND g.game_name = %(param2)s
+                        AND (g.game_class = %(param3)s OR g.game_class = '_')
+                    ),
+                    leaderboard_year_game AS (
+                        SELECT
+                            team_class,
+                            team_id,
+                            AVG(score_team) * 100 AS average_score
+                        FROM computed_scores_year_game_roles
+                        GROUP BY team_class, team_id
+                        ORDER BY average_score DESC
+                    ),
+                    aggregated_scores_roles AS (
+                        SELECT
+                            team_class,
+                            team_id,
+                            name_roles_1,
+                            name_roles_2,
+                            AVG(score_role1) * 100 AS average_score_role1,
+                            AVG(score_role2) * 100 AS average_score_role2
+                        FROM computed_scores_year_game_roles
+                        GROUP BY team_class, team_id, name_roles_1, name_roles_2
+                    ),
+                    leaderboard_roles AS (
+                        SELECT
+                            team_class,
+                            team_id,
+                            name_roles_1,
+                            name_roles_2,
+                            RANK() OVER (ORDER BY average_score_role1 DESC) AS position_name_roles_1,
+                            average_score_role1 AS score_name_roles_1,
+                            RANK() OVER (ORDER BY average_score_role2 DESC) AS position_name_roles_2,
+                            average_score_role2 AS score_name_roles_2
+                        FROM aggregated_scores_roles
+                        ORDER BY position_name_roles_1, position_name_roles_2
+                    )
+                    SELECT
+                        lyg.team_class,
+                        lyg.team_id,
+                        lyg.average_score AS team_average_score,
+                        lr.position_name_roles_1,
+                        lr.score_name_roles_1,
+                        lr.position_name_roles_2,
+                        lr.score_name_roles_2
+                    FROM leaderboard_year_game AS lyg
+                    JOIN leaderboard_roles AS lr
+                    ON lyg.team_class = lr.team_class AND lyg.team_id = lr.team_id
+                    ORDER BY lyg.average_score DESC;
+                """
+
+                # Execute the query with the selected year
+                cur.execute(query, {'param1': selected_year, 'param2': selected_game_name, 'param3': selected_game_class})
+                
+                # Fetch results
+                leaderboard = cur.fetchall()
+
+                # Format the results into a list of dictionaries
+                return [
+                    {
+                        "team_class": row[0],
+                        "team_id": row[1],
+                        "average_score": row[2],
+                        "position_name_roles_1": row[3],
+                        "score_name_roles_1": row[4],
+                        "position_name_roles_2": row[5],
+                        "score_name_roles_2": row[6],
+                    }
+                    for row in leaderboard
+                ]
 
     except Exception:
         return False
