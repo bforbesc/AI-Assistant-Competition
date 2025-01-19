@@ -14,26 +14,6 @@ def valid_email(email):
     email_pattern = r'^[a-z0-9_.+-]+@[a-z0-9-]+\.[a-z0-9-.]+$'
     return bool(re.match(email_pattern, email))
 
-# Send OTP email
-def send_otp_email(email, otp):
-    subject = "Your One-Time Password (OTP)"
-    body = f"Your OTP is {otp}. Please use this to complete your login or registration."
-    message = MIMEText(body)
-    message['Subject'] = subject
-    message['From'] = "ricardo.almeida2210@gmail.com"
-    message['To'] = email
-    
-    try:
-        with smtplib.SMTP('smtp.gmail.com', 587) as server:
-            server.starttls()
-            server.login("ricardo.almeida2210@gmail.com", "zbqv zxft zmub qtru")
-            server.sendmail("ricardo.almeida2210@gmail.com", email, message.as_string())
-        print("OTP email sent successfully.")
-    except Exception as e:
-        print(f"Error sending email: {e}")
-    
-    return otp
-
 # Initiate set password
 def set_password(email):
     if exists_user(email):
