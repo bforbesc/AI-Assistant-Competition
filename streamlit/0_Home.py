@@ -172,10 +172,19 @@ else:
 
     st.write(f'Welcome, {st.session_state.user_id}!')
 
-    st.markdown("""
-                Here's a brief overview of the content of each section of the app:
-                - **Play**: Submit prompts for ongoing games, and check chats and the leaderboard of previous games.
-                - **Control Panel**: A dedicated page accessible only to professors for administrative tasks.
-                - **Profile**: Manage personal information and update your password.
-                - **About**: Learn more about the app's authors and contributors.
-                """)
+    if st.session_state.professor:
+        st.markdown("""
+                    Here's a brief overview of the content of each section of the app:
+                    - **Play**: Submit prompts for ongoing games, and check chats of previous games.
+                    - **Control Panel**: A dedicated page accessible only to professors for administrative tasks.
+                    - **Profile**: Manage personal information.
+                    - **About**: Learn more about the app's authors and contributors.
+                    """)
+    else:
+        st.markdown("""
+                    Here's a brief overview of the content of each section of the app:
+                    - **Play**: Submit prompts for ongoing games, and check chats of previous games.
+                    - **Control Panel**: A dedicated page accessible only to professors for administrative tasks.
+                    - **Profile**: View leaderboards and manage personal information.
+                    - **About**: Learn more about the app's authors and contributors.
+                    """)

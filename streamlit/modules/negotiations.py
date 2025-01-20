@@ -78,7 +78,9 @@ def create_agents(game_id, order, teams, values, name_roles, config_list, negoti
     if config_list["config_list"][0]["model"] == "gpt-4o-mini": words = 15
 
     elif config_list["config_list"][0]["model"] == "gpt-4o": words = 25
-    
+
+    else: words = 15
+
     for team in teams:
 
         submission = get_text_from_file_without_timestamp(f'Game{game_id}_Class{team[0]}_Group{team[1]}') 
@@ -140,10 +142,10 @@ def create_chats(game_id, config_list, name_roles, order, teams, values, num_rou
         llm_config=config_list,
         human_input_mode="NEVER",
         is_termination_msg=lambda msg: summary_termination_message in msg["content"],
-        system_message = f"You will be asked to answer a quick question regarding the outcome of a negotiation. You will be provided with the last 2 interactions of the negotiation and your answer should be based on them. Your answer must be of the type {summary_termination_message}, just adding the value agreed, as in '{summary_termination_message} x', x being the value. Make sure the conversation has ended with {negotiation_termination_message}, otherwise the negotiation has not been finalized and there was no agreement. If this happens, i.e., if the final message does not include {negotiation_termination_message}, your answer should be '{summary_termination_message} -1'."  
+        system_message = f"You will be asked to answer a quick question regarding the outcome of a negotiation. You will be provided with the last 4 interactions of the negotiation and your answer should be based on them. Your answer must be of the type {summary_termination_message}, just adding the value agreed, as in '{summary_termination_message} x', x being the value. Make sure the conversation has ended with {negotiation_termination_message}, otherwise the negotiation has not been finalized and there was no agreement. If this happens, i.e., if the final message does not include {negotiation_termination_message}, your answer should be '{summary_termination_message} -1'."  
     )
 
-    max_retries = 2
+    max_retries = 10
 
     errors_matchups = []
 
@@ -199,7 +201,7 @@ def create_chats(game_id, config_list, name_roles, order, teams, values, num_rou
                                 score1_team2 = round((deal - team1["Value 1"])/(team2["Value 2"] - team1["Value 1"]), 4)
                                 score1_team1 = 1 - score1_team2
 
-                            update_round_data(game_id, round_, class1, group1, class2, group2, score1_team1, score1_team2, order)
+                            # update_round_data(game_id, round_, class1, group1, class2, group2, score1_team1, score1_team2, order)
 
                         elif order == "opposite":
                             
@@ -215,16 +217,14 @@ def create_chats(game_id, config_list, name_roles, order, teams, values, num_rou
                                 score1_team1 = round((deal - team2["Value 2"])/(team1["Value 1"] - team2["Value 2"]), 4)
                                 score1_team2 = 1 - score1_team1
 
-                            update_round_data(game_id, round_, class1, group1, class2, group2, score1_team1, score1_team2, order) 
+                        update_round_data(game_id, round_, class1, group1, class2, group2, score1_team1, score1_team2, order) 
 
                     break  # Exit retry loop on success
 
-                except Exception as e:
-                    print(e)
-                    
+                except Exception:                    
                     if attempt == max_retries - 1:
-                        
-                        errors_matchups.append((round_, team1["Name"], team2["Name"]))
+                        if order == "same": errors_matchups.append((round_, team1["Name"], team2["Name"]))
+                        elif order == "opposite": errors_matchups.append((round_, team2["Name"], team1["Name"]))
 
             # Attempt to create the second chat
             for attempt in range(max_retries):
@@ -280,12 +280,10 @@ def create_chats(game_id, config_list, name_roles, order, teams, values, num_rou
                         
                     break  # Exit retry loop on success
 
-                except Exception as e:
-                    print(e)
-                    
+                except Exception:                    
                     if attempt == max_retries - 1:
-
-                        errors_matchups.append((round_, team2["Name"], team1["Name"]))
+                        if order == "same": errors_matchups.append((round_, team2["Name"], team1["Name"]))
+                        elif order == "opposite": errors_matchups.append((round_, team1["Name"], team2["Name"]))
             
     # error messages
     if not errors_matchups: return "All negotiations were completed successfully!"
@@ -295,12 +293,7 @@ def create_chats(game_id, config_list, name_roles, order, teams, values, num_rou
         error_message = "The following negotiations were unsuccessful:\n\n"
 
         for match in errors_matchups:
-            
-            if order == "same":
-                error_message += f"- Round {match[0]} - {match[1]} ({name_roles[0]}) vs {match[2]} ({name_roles[1]});\n"
-
-            elif order == "opposite":
-                error_message += f"- Round {match[0]} - {match[1]} ({name_roles[1]}) vs {match[2]} ({name_roles[0]});\n"
+            error_message += f"- Round {match[0]} - {match[1]} ({name_roles[0]}) vs {match[2]} ({name_roles[1]});\n"
 
         return error_message
     
@@ -330,7 +323,7 @@ def create_all_error_chats(game_id, config_list, name_roles, order, values, star
         llm_config=config_list,
         human_input_mode="NEVER",
         is_termination_msg=lambda msg: summary_termination_message in msg["content"],
-        system_message = f"You will be asked to answer a quick question regarding the outcome of a negotiation you will have access to. Your answer must be of the type {summary_termination_message}. If there was no agreement use the value -1, other wise just add the value to the answer as in '{summary_termination_message} x'. Make sure the conversation has ended with {negotiation_termination_message}, otherwise the negotiation has not been finalized." 
+        system_message = f"You will be asked to answer a quick question regarding the outcome of a negotiation. You will be provided with the last 4 interactions of the negotiation and your answer should be based on them. Your answer must be of the type {summary_termination_message}, just adding the value agreed, as in '{summary_termination_message} x', x being the value. Make sure the conversation has ended with {negotiation_termination_message}, otherwise the negotiation has not been finalized and there was no agreement. If this happens, i.e., if the final message does not include {negotiation_termination_message}, your answer should be '{summary_termination_message} -1'."  
     )
 
     max_retries = 10
