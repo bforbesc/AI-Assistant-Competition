@@ -102,7 +102,7 @@ if st.session_state['authenticated']:
                         if i[0] == CLASS and int(i[1]) == GROUP_ID:
                             values = i
                             break
-                    st.write(f"Your intend to buy for {values[2]}€ and sell for {values[3]}€.")
+                    st.write(f"{name_roles_1}: {values[2]}; {name_roles_2}: {values[3]}.")
                 else:
                     st.write("No private information found for this game.")
 
@@ -147,7 +147,7 @@ if st.session_state['authenticated']:
 
     if option == 'Past Games': 
 
-        past_games = fetch_current_games_data_by_user_id('<', USER_ID) #should be '>'
+        past_games = fetch_current_games_data_by_user_id('>', USER_ID) 
 
         # If there are past games (in which the student took part)
         if past_games != []:
@@ -179,7 +179,7 @@ if st.session_state['authenticated']:
                         if i[0] == CLASS and int(i[1]) == GROUP_ID:
                             values = i
                             break
-                    st.write(f"Your intend to buy for {values[2]}€ and sell for {values[3]}€.")
+                    st.write(f"{name_roles_1}: {values[2]}; {name_roles_2}: {values[3]}.")
                 else:
                     st.write("No private information found for this game. Please contact your Professor.")
 
@@ -220,12 +220,12 @@ if st.session_state['authenticated']:
 
                     if selection == name_roles_1:
                         chat = get_text_from_file_aux(f'Game{game_id}_Round{round_}_Class{CLASS}_Group{GROUP_ID}_Class{class_}_Group{group_}')
-                        if chat: st.write(chat)
+                        if chat: st.write(chat.replace('$', '\$'))
                         else: st.write('Chat not found. Please contact your Professor.')
 
                     elif selection == name_roles_2:
                         chat = get_text_from_file_aux(f'Game{game_id}_Round{round_}_Class{class_}_Group{group_}_Class{CLASS}_Group{GROUP_ID}')
-                        if chat: st.write(chat)
+                        if chat: st.write(chat.replace('$', '\$'))
                         else: st.write('Chat not found. Please contact your Professor.')
                 
                 else: st.write('You do not have any chats available. Please contact your Professor.')

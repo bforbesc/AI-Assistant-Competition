@@ -30,7 +30,7 @@ CREATE TABLE professor (
 -- game table
 CREATE TABLE game (
     game_id SERIAL,                                                       -- Unique identifier for each game, auto-incremented, not null
-    available SMALLINT NOT NULL,                                          -- Indicates whether the game is visible to students (1 for visible, 0 for hidden)
+    available SMALLINT NOT NULL,                                          -- Indicates whether the negotiation chats are visible to students: 1 (visible), 0 (hidden).
     created_by VARCHAR(50) NOT NULL,                                      -- userID (university ID) of the professor that created the game, cannot be null
     game_name VARCHAR(100) NOT NULL,                                      -- Name of the game, cannot be null
     number_of_rounds SMALLINT NOT NULL,                                   -- Number of rounds in the game, cannot be null
