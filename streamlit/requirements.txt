@@ -1,0 +1,6 @@
+psycopg2-binary
+jwt
+streamlit-aggrid
+autogen
+flask
+google-api-python-client
