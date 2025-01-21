@@ -1,3 +1,4 @@
+import streamlit as st
 import psycopg2
 import pandas as pd
 from flask import Flask
@@ -5,11 +6,7 @@ from flask import Flask
 app = Flask(__name__)
 app.secret_key = 'key' 
 
-DB_HOST="db.tecnico.ulisboa.pt"
-DB_USER="ist199317" 
-DB_DATABASE=DB_USER
-DB_PASSWORD="yjxp3222"
-DB_CONNECTION_STRING = "host=%s dbname=%s user=%s password=%s" % (DB_HOST, DB_DATABASE, DB_USER, DB_PASSWORD)
+DB_CONNECTION_STRING = st.secrets["api"]["database"]
 
 # Function to populate the 'plays' table with students who match the academic year and class of the created game
 def populate_plays_table(game_id, game_academic_year, game_class):
