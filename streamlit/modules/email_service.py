@@ -8,8 +8,8 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from modules.database_handler import exists_user
 
-MAIL = st.secrets["api"]["mail"]
-MAIL_API_PASS = st.secrets["api"]["mail_api"]
+MAIL = st.secrets["mail"]
+MAIL_API_PASS = st.secrets["mail_api"]
 
 # Validate email format (lowercase only)
 def valid_email(email):

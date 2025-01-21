@@ -6,7 +6,7 @@ from flask import Flask
 app = Flask(__name__)
 app.secret_key = 'key' 
 
-DB_CONNECTION_STRING = st.secrets["api"]["database"]
+DB_CONNECTION_STRING = st.secrets["database"]
 
 # Function to populate the 'plays' table with students who match the academic year and class of the created game
 def populate_plays_table(game_id, game_academic_year, game_class):

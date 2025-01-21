@@ -12,7 +12,7 @@ SCOPES = ['https://www.googleapis.com/auth/drive']
 PARENT_FOLDER_ID = "1gfRT-mmYTpcP5wlAi06zSi7qdBdnUr-E"
 
 # JSON string containing service account credentials
-JSON_STRING = st.secrets["api"]["drive"]
+JSON_STRING = st.secrets["drive"]
 INFO = json.loads(JSON_STRING)
 
 # Authenticates using service account credentials
