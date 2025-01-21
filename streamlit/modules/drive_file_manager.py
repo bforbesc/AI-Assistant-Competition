@@ -1,3 +1,4 @@
+import streamlit as st
 from googleapiclient.discovery import build
 from google.oauth2 import service_account
 from googleapiclient.http import MediaIoBaseUpload, MediaIoBaseDownload
@@ -11,19 +12,7 @@ SCOPES = ['https://www.googleapis.com/auth/drive']
 PARENT_FOLDER_ID = "1gfRT-mmYTpcP5wlAi06zSi7qdBdnUr-E"
 
 # JSON string containing service account credentials
-JSON_STRING = r'''{ 
-  "type": "service_account",
-  "project_id": "ai-assistant-competition",
-  "private_key_id": "5b6454b9cfd0c6d7fba8c2b0239efd48f383b855",
-  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvAIBADANBgkqhkiG9w0BAQEFAASCBKYwggSiAgEAAoIBAQC2AaJ3wELP7ZUY\necx9rYQX1qbX68zz0ahCllEMaBda+pubwyhj5AUkVQAr5b5q42m4c2zey6DM15kq\n7XEGijDgt+6/wium4B+94rlHLR+lM6LDgKLVdwanBDwbYz/sQvxcDCe5joLNYjQc\nq2phZYQq2jnzdpl7UyaNLsEOuWOkkwSsk818jwFLQBCYAiq1KsO5nj0koPSS2y9q\n73R7waMf+1A5QjNVZOQXblZX5ONWi6d7GwTeuWmqv+ZQJnURojU6cMv92IuKlDCS\nZQEl+wDK8msSERkh83tvEBxY9G12TBHccDLJ9p/KYu/l5WEtSLUAQXMCi6t9pZvu\nLMjcY8I9AgMBAAECggEAFROW4hmyUvxPA/TU1KfzkEQj8YSlqQV6H+3iyFZEgB1d\nyDmfE4Q8ATNTsAGsnZmkrD63mIxJnHcKDnHNISX/F4LNQ8kDP5GcM2POM1sbG0kh\nu9SJZsFgFJa1tDE33Y77RNiGgCMr7AdHhBtomAtGtSSsydAN4X1lTTuhESiwTIYk\nN/WTQcdHGFPrNm30nHof9xv0L86bs1f0U97pFK93ymTAamx/sKoscuJi/uSLqpFK\nDWrjr2F7Xhn5TWJ3LDfe03dqdkgJ5sP56xVV281xid8vBHDa/uxc4EZQxFMsPSMs\nF1wjogT1IZVp9sHbexrNUxuSLhuL65zXJWLPOBZNcQKBgQD++U+sTpMJDs8iv6zD\ne+qPu47oLZgmjLNBcx021edRHKwKTkO5EdPV09D/fUyhs54tdDadKH6j+q+Mh+t5\n25zFp4yluEuMUKZeAehwBrKlfe+UHEnXRzTd2V2ehMtgSYnwf8OdxKOW6hnHUFrL\nfGyzMjB8r4ydVEzOcR+95wKSEQKBgQC2vSXqViHsH25jryh6tutnKg62+QO+pwBd\nW1SxNc+ClUh7iY/xUtw3DXAxcbZeWvhzzgn8yhVn3jbo2BEiiUdSO4aa17G94r6Z\nnU36A/Dv8l/VeufaVInZRvXgyPjJkMsYZYvanOMkC7j4RjW7g5k2OA40DlgddkWt\nKEAZ2KGBbQKBgAjY2bze1RdBXkqUYAhAankmRuUjf94Gj8m7ls3qSiZ0WjvZT1xC\nlBkdSmkzDc+mjdyB5cs6Nnq2HhVAOhl2V1A8ahLt/CEYQ02Lv2bztIstfXykJqPD\nor/35Nm1PeFPa+veYwk8Y3i/ErnpvdzFqnflS+1nofdrj2ayYimStHIhAoGAbdzv\n85/PCy+mZWYENyrMAh0F9blmJ/QtQvNKyrOoS0DG8Aa3NIX1gV+h6QgNdVLJ9o2T\n8ZfpIKY3auuj+ZiA+Y5yEZvF73xnzOEG5V4DN68HMMiQpfGXYrrHzlnlQQG9KLC8\nUTVrVdt6XEGRwmeO8ErpNyC8lxHpN/5v81oLV00CgYBGMEjXtnCHuhKoD/MYzlcO\ncLv9JAbZx0Ea5hcKM3obS9oGghAQdRCdH4+9ybSqSaV3L7SkQiqimc+uw4OBfrD/\nNeLb6/P/1g2ct5i3dsidlBGD/TCKHUn/3FQblT1npPQ7mGvY1d1PeN4K5tYBn/lw\nVAWgD4FzC5dsaMZXhGnTPA==\n-----END PRIVATE KEY-----\n",
-  "client_email": "autogen@ai-assistant-competition.iam.gserviceaccount.com",
-  "client_id": "103055994633429436207",
-  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
-  "token_uri": "https://oauth2.googleapis.com/token",
-  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
-  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/autogen%40ai-assistant-competition.iam.gserviceaccount.com",
-  "universe_domain": "googleapis.com"
-}'''
+JSON_STRING = st.secrets["api"]["drive"]
 INFO = json.loads(JSON_STRING)
 
 # Authenticates using service account credentials

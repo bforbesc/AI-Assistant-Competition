@@ -1,3 +1,4 @@
+import streamlit as st
 import smtplib
 import re
 import jwt
@@ -6,6 +7,9 @@ import datetime
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from modules.database_handler import exists_user
+
+MAIL = st.secrets["api"]["mail"]
+MAIL_API_PASS = st.secrets["api"]["mail_api"]
 
 # Validate email format (lowercase only)
 def valid_email(email):
@@ -26,7 +30,7 @@ def set_password(email):
 def send_set_password_email(email, set_password_link):
     message = MIMEMultipart()
     message['Subject'] = "Set Password Request"
-    message['From'] = 'ricardo.almeida2210@gmail.com'
+    message['From'] = MAIL
     message['To'] = email
     body = MIMEText(f"Click here to set your password: {set_password_link}", 'plain')
     message.attach(body)
@@ -34,8 +38,8 @@ def send_set_password_email(email, set_password_link):
     try:
         with smtplib.SMTP('smtp.gmail.com', 587) as server:
             server.starttls()
-            server.login("ricardo.almeida2210@gmail.com", "zbqv zxft zmub qtru")
-            server.sendmail("ricardo.almeida2210@gmail.com", email, message.as_string())
+            server.login(MAIL, MAIL_API_PASS)
+            server.sendmail(MAIL, email, message.as_string())
             print("Set password email sent successfully")
     except Exception as e:
         print(f"Error sending email: {e}")
