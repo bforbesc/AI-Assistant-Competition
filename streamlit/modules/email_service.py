@@ -10,6 +10,7 @@ from modules.database_handler import exists_user
 
 MAIL = st.secrets["mail"]
 MAIL_API_PASS = st.secrets["mail_api"]
+APP_LINK = st.secrets["app_link"]
 
 # Validate email format (lowercase only)
 def valid_email(email):
@@ -47,7 +48,7 @@ def send_set_password_email(email, set_password_link):
 # Secret key for JWT
 SECRET_KEY = str(os.getenv("SECRET_KEY"))
 
-base_url = "http://localhost:8501"
+base_url = APP_LINK
 
 # Generate set password link with JWT
 def generate_set_password_link(email):
