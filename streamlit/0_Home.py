@@ -36,7 +36,7 @@ if 'show_set_password_form' in query_params:
     st.session_state['show_set_password_form'] = True
 
 # Main login section if the user is not logged in
-if not st.session_state['authenticated'] and not st.session_state['show_set_password_form']:
+if not st.session_state['authenticated']:
 
     # Set session state value for email if not already set
     if 'login_email' not in st.session_state:
