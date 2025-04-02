@@ -9,7 +9,7 @@ import json
 
 # Define the Google Drive API scope and parent folder ID
 SCOPES = ['https://www.googleapis.com/auth/drive']
-PARENT_FOLDER_ID = "1gfRT-mmYTpcP5wlAi06zSi7qdBdnUr-E"
+PARENT_FOLDER_ID = st.secrets["folder_id"]
 
 # JSON string containing service account credentials
 JSON_STRING = st.secrets["drive"]
