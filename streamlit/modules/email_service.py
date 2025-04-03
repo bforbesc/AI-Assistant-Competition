@@ -30,7 +30,7 @@ def set_password(email):
 # Send email with set password link
 def send_set_password_email(email, set_password_link):
     message = MIMEMultipart()
-    message['Subject'] = "AI Assistant Competition: Set Password Request"
+    message['Subject'] = "AI Assistant Competition: Set Your Password"
     message['From'] = MAIL
     message['To'] = email
     body = MIMEText(f"Click here to set your password: https://{set_password_link}", 'plain')
