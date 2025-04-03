@@ -2,5 +2,7 @@ psycopg2-binary
 pyjwt
 streamlit-aggrid
 autogen
+ag2
+openai
 flask
 google-api-python-client
