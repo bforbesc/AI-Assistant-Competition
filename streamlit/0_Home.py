@@ -95,7 +95,7 @@ if not st.session_state['authenticated']:
         if set_password_button:
             if valid_email(st.session_state['set_password_email']):
                 if set_password(st.session_state['set_password_email']):
-                    st.success("Set password link has been sent to your email!")
+                    st.success("Set password link has been sent to your email! Please wait up to 10 min before asking for another one.")
                 else:
                     st.error("Email not found. Please check your email and try again.")
             else:
