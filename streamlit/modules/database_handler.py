@@ -898,7 +898,7 @@ def get_user_id_of_student(academic_year, class_, group_id):
         return False
 
 # Function to get and compute leaderboard scores for a given academic year
-def fetch_and_compute_scores_for_year(selected_year):
+def fetch_and_compute_scores_for_year(selected_year, student = False):
     try:
         with psycopg2.connect(DB_CONNECTION_STRING) as conn:
             with conn.cursor() as cur:
@@ -916,7 +916,7 @@ def fetch_and_compute_scores_for_year(selected_year):
                             r.score_team1_role2 AS score_role2
                         FROM round AS r
                         JOIN game AS g ON r.game_id = g.game_id
-                        WHERE g.game_academic_year = %(param1)s
+                        WHERE g.game_academic_year = %(param1)s AND g.available IN %(param2)s
 
                         UNION ALL
 
@@ -930,7 +930,7 @@ def fetch_and_compute_scores_for_year(selected_year):
                             r.score_team2_role2 AS score_role2
                         FROM round AS r
                         JOIN game AS g ON r.game_id = g.game_id
-                        WHERE g.game_academic_year = %(param2)s
+                        WHERE g.game_academic_year = %(param1)s AND g.available IN %(param2)s
                     ),
                     leaderboard_only_year AS (
                         SELECT
@@ -974,7 +974,7 @@ def fetch_and_compute_scores_for_year(selected_year):
                 """
 
                 # Execute the query with the selected year
-                cur.execute(query, {'param1': selected_year, 'param2': selected_year})
+                cur.execute(query, {'param1': selected_year, 'param2': (0, 1) if not student else (1,)})
 
                 # Fetch results
                 leaderboard = cur.fetchall()

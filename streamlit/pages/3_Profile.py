@@ -215,18 +215,18 @@ if st.session_state['authenticated']:
                                 for game in games
                             ]
 
-                game_names_with_classes.insert(0, "None")
+                game_names_with_classes.insert(0, "All")
 
                 selected_game_with_classes = st.sidebar.selectbox("Select Game", game_names_with_classes)
 
                 def color_coding(row):
                         return ['background-color:rgba(0, 255, 0, 0.25'] * len(row) if row["Class"] == CLASS  and row["Group ID"] == GROUP_ID else [''] * len(row)
 
-                if selected_game_with_classes == "None":
+                if selected_game_with_classes == "All":
 
                     st.subheader(ACADEMIC_YEAR)
 
-                    leaderboard = fetch_and_compute_scores_for_year(ACADEMIC_YEAR)
+                    leaderboard = fetch_and_compute_scores_for_year(ACADEMIC_YEAR, student=True)
 
                     if leaderboard:
                                             
@@ -264,48 +264,54 @@ if st.session_state['authenticated']:
 
                         st.dataframe(leaderboard_df.style.apply(color_coding, axis=1).format(precision=2), use_container_width=True)
 
+                    else: st.write("Leaderboard not available yet.") 
+
                 else:
 
                     st.subheader(selected_game_with_classes)
 
                     index_ = game_names_with_classes.index(selected_game_with_classes)-1
-                    leaderboard = fetch_and_compute_scores_for_year_game(games[index_]['game_id'])
 
-                    if leaderboard:                         
+                    if games[index_]['available'] == 1:
+                        leaderboard = fetch_and_compute_scores_for_year_game(games[index_]['game_id'])
 
-                        leaderboard_with_position = [
-                            {
-                                "Class": row["team_class"],
-                                "Group ID": row["team_id"],
-                                "Score": row["average_score"],
-                                "Position (Low-Value Role)": row["position_name_roles_1"],
-                                "Score (Low-Value Role)": row["score_name_roles_1"],
-                                "Position (High-Value Role)": row["position_name_roles_2"],
-                                "Score (High-Value Role)": row["score_name_roles_2"],
-                            }
-                            for row in leaderboard
-                        ]
+                        if leaderboard:                         
 
-                        leaderboard_df = pd.DataFrame(
-                            leaderboard_with_position, 
-                            columns=[
-                                "Class", 
-                                "Group ID", 
-                                "Score", 
-                                "Position (Low-Value Role)",
-                                "Score (Low-Value Role)",
-                                "Position (High-Value Role)",
-                                "Score (High-Value Role)"
+                            leaderboard_with_position = [
+                                {
+                                    "Class": row["team_class"],
+                                    "Group ID": row["team_id"],
+                                    "Score": row["average_score"],
+                                    "Position (Low-Value Role)": row["position_name_roles_1"],
+                                    "Score (Low-Value Role)": row["score_name_roles_1"],
+                                    "Position (High-Value Role)": row["position_name_roles_2"],
+                                    "Score (High-Value Role)": row["score_name_roles_2"],
+                                }
+                                for row in leaderboard
                             ]
-                        )
 
-                        leaderboard_df["Score"] = leaderboard_df["Score"].round(2)
-                        leaderboard_df["Score (Low-Value Role)"] = leaderboard_df["Score (Low-Value Role)"].round(2)
-                        leaderboard_df["Score (High-Value Role)"] = leaderboard_df["Score (High-Value Role)"].round(2)
+                            leaderboard_df = pd.DataFrame(
+                                leaderboard_with_position, 
+                                columns=[
+                                    "Class", 
+                                    "Group ID", 
+                                    "Score", 
+                                    "Position (Low-Value Role)",
+                                    "Score (Low-Value Role)",
+                                    "Position (High-Value Role)",
+                                    "Score (High-Value Role)"
+                                ]
+                            )
 
-                        leaderboard_df.index = leaderboard_df.index + 1
+                            leaderboard_df["Score"] = leaderboard_df["Score"].round(2)
+                            leaderboard_df["Score (Low-Value Role)"] = leaderboard_df["Score (Low-Value Role)"].round(2)
+                            leaderboard_df["Score (High-Value Role)"] = leaderboard_df["Score (High-Value Role)"].round(2)
 
-                        st.dataframe(leaderboard_df.style.apply(color_coding, axis=1).format(precision=2), use_container_width=True)
+                            leaderboard_df.index = leaderboard_df.index + 1
+
+                            st.dataframe(leaderboard_df.style.apply(color_coding, axis=1).format(precision=2), use_container_width=True)
+
+                    elif games[index_]['available'] == 0: st.write("Leaderboard not available yet.") 
 
             else: st.write('No games played yet.')
 

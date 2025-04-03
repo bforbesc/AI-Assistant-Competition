@@ -133,7 +133,7 @@ if st.session_state['authenticated']:
                 with st.form(key='form_inputs'):
                     text_area_1 = st.text_area(f'{name_roles_1} Prompt', help='A good prompt should be clear, specific, and provide enough context and detail about your position, interests, and desired outcomes.')
                     text_area_2 = st.text_area(f'{name_roles_2} Prompt')
-                    submit_button = st.form_submit_button('Submit', disabled=st.session_state['professor'])
+                    submit_button = st.form_submit_button('Submit')
 
                 if submit_button:                    
                     prompts = text_area_1 + '\n\n' + '#_;:)' + '\n\n' + text_area_2

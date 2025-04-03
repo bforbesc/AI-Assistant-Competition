@@ -878,7 +878,7 @@ if st.session_state['authenticated']:
                                 is_enabled = selected_game['available']
 
                                 if is_enabled:
-                                    access_disabled = st.button('Disable Student Access to these Negotiation Chats')
+                                    access_disabled = st.button('Disable Student Access to these Negotiation Chats and Leaderboard')
 
                                     if access_disabled: 
                                         update_access_to_chats(0, selected_game['game_id'])
@@ -888,7 +888,7 @@ if st.session_state['authenticated']:
                                         st.rerun()
                                 
                                 else:
-                                    access_enabled = st.button('Enable Student Access to Negotiation Chats')
+                                    access_enabled = st.button('Enable Student Access to Negotiation Chats and Leaderboard')
 
                                     if access_enabled: 
                                         update_access_to_chats(1, selected_game['game_id'])
@@ -952,14 +952,14 @@ if st.session_state['authenticated']:
                                 for game in games_for_selected_year
                             ]
 
-                            # "None" as the default option
-                            game_names_with_classes.insert(0, "None")
+                            # "All" as the default option
+                            game_names_with_classes.insert(0, "All")
 
                             # Sidebar selectbox for game selection
                             selected_game_with_classes = st.sidebar.selectbox("Select Game", game_names_with_classes)
 
                             # If no game is selected, use fetch_and_compute_scores_for_year (based on year only)
-                            if selected_game_with_classes == "None":
+                            if selected_game_with_classes == "All":
                                 leaderboard = fetch_and_compute_scores_for_year(selected_year)
                                 
                                 if leaderboard and leaderboard != False: # Check for valid leaderboard data
