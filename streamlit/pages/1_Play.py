@@ -102,7 +102,10 @@ if st.session_state['authenticated']:
                         if i[0] == CLASS and int(i[1]) == GROUP_ID:
                             values = i
                             break
-                    st.write(f"{name_roles_1}: {values[2]}; {name_roles_2}: {values[3]}.")
+                    st.write(f"The following information is private and group-specific. Do not share it with others:")
+                    st.write(f"When playing as **{name_roles_1}**, your valuation is: **{values[2]}**;")
+                    st.write(f"When playing as **{name_roles_2}**, your valuation is: **{values[3]}**.")
+
                 else:
                     st.write("No private information found for this game.")
 

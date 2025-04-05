@@ -235,10 +235,10 @@ if st.session_state['authenticated']:
                                 "Class": row["team_class"],
                                 "Group ID": row["team_id"],
                                 "Score": row["average_score"],
-                                "Position (Low-Value Role)": row["position_name_roles_1"],
-                                "Score (Low-Value Role)": row["score_name_roles_1"],
-                                "Position (High-Value Role)": row["position_name_roles_2"],
-                                "Score (High-Value Role)": row["score_name_roles_2"],
+                                "Position (Minimizer Role)": row["position_name_roles_1"],
+                                "Score (Minimizer Role)": row["score_name_roles_1"],
+                                "Position (Maximizer Role)": row["position_name_roles_2"],
+                                "Score (Maximizer Role)": row["score_name_roles_2"],
                             }
                             for row in leaderboard
                         ]
@@ -249,16 +249,16 @@ if st.session_state['authenticated']:
                                 "Class", 
                                 "Group ID", 
                                 "Score", 
-                                "Position (Low-Value Role)",
-                                "Score (Low-Value Role)",
-                                "Position (High-Value Role)",
-                                "Score (High-Value Role)"
+                                "Position (Minimizer Role)",
+                                "Score (Minimizer Role)",
+                                "Position (Maximizer Role)",
+                                "Score (Maximizer Role)"
                             ]
                         )
 
                         leaderboard_df["Score"] = leaderboard_df["Score"].round(2)
-                        leaderboard_df["Score (Low-Value Role)"] = leaderboard_df["Score (Low-Value Role)"].round(2)
-                        leaderboard_df["Score (High-Value Role)"] = leaderboard_df["Score (High-Value Role)"].round(2)
+                        leaderboard_df["Score (Minimizer Role)"] = leaderboard_df["Score (Minimizer Role)"].round(2)
+                        leaderboard_df["Score (Maximizer Role)"] = leaderboard_df["Score (Maximizer Role)"].round(2)
 
                         leaderboard_df.index = leaderboard_df.index + 1
 
@@ -282,10 +282,10 @@ if st.session_state['authenticated']:
                                     "Class": row["team_class"],
                                     "Group ID": row["team_id"],
                                     "Score": row["average_score"],
-                                    "Position (Low-Value Role)": row["position_name_roles_1"],
-                                    "Score (Low-Value Role)": row["score_name_roles_1"],
-                                    "Position (High-Value Role)": row["position_name_roles_2"],
-                                    "Score (High-Value Role)": row["score_name_roles_2"],
+                                    "Position (Minimizer Role)": row["position_name_roles_1"],
+                                    "Score (Minimizer Role)": row["score_name_roles_1"],
+                                    "Position (Maximizer Role)": row["position_name_roles_2"],
+                                    "Score (Maximizer Role)": row["score_name_roles_2"],
                                 }
                                 for row in leaderboard
                             ]
@@ -296,16 +296,16 @@ if st.session_state['authenticated']:
                                     "Class", 
                                     "Group ID", 
                                     "Score", 
-                                    "Position (Low-Value Role)",
-                                    "Score (Low-Value Role)",
-                                    "Position (High-Value Role)",
-                                    "Score (High-Value Role)"
+                                    "Position (Minimizer Role)",
+                                    "Score (Minimizer Role)",
+                                    "Position (Maximizer Role)",
+                                    "Score (Maximizer Role)"
                                 ]
                             )
 
                             leaderboard_df["Score"] = leaderboard_df["Score"].round(2)
-                            leaderboard_df["Score (Low-Value Role)"] = leaderboard_df["Score (Low-Value Role)"].round(2)
-                            leaderboard_df["Score (High-Value Role)"] = leaderboard_df["Score (High-Value Role)"].round(2)
+                            leaderboard_df["Score (Minimizer Role)"] = leaderboard_df["Score (Minimizer Role)"].round(2)
+                            leaderboard_df["Score (Maximizer Role)"] = leaderboard_df["Score (Maximizer Role)"].round(2)
 
                             leaderboard_df.index = leaderboard_df.index + 1
 
