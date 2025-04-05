@@ -297,7 +297,7 @@ if st.session_state['authenticated']:
                         with col2: param2 = st.number_input("Maximum Low-Value", min_value=0, step=1, value=11)
                         with col3: param3 = st.number_input("Minimum High-Value", min_value=0, step=1, value=19)
                         with col4: param4 = st.number_input("Maximum High-Value", min_value=0, step=1, value=21,
-                                                     help='All values are expressed in thousands.')
+                                                     help='All values are expressed in the unit mentioned in description.')
 
                         # Academic year and class selection
                         selected_combination = st.selectbox(
@@ -360,10 +360,10 @@ if st.session_state['authenticated']:
                                     error.empty()
                                 
                                 different_groups_classes = get_group_ids_from_game_id(next_game_id)
-                                text = f'{param1*1000},{param2*1000},{param3*1000},{param4*1000}\n'
+                                text = f'{param1},{param2},{param3},{param4}\n'
                                 for i in different_groups_classes:
-                                    buy_value = int(round(random.uniform(param1*1000, param2*1000), -2))
-                                    sell_value = int(round(random.uniform(param3*1000, param4*1000), -2))
+                                    buy_value = int(random.uniform(param1, param2))
+                                    sell_value = int(random.uniform(param3, param4))
                                     text += f'{i[0]},{i[1]},{buy_value},{sell_value}\n'
 
                                 upload_text_as_file(text, f"Values_{user_id}_{next_game_id}_{timestamp_game_creation}")
@@ -920,11 +920,11 @@ if st.session_state['authenticated']:
                                     # Create an expander only if the chat exists
                                     
                                     with st.expander(f"**Class {class_1} - Group {team_1} ({name_roles_1}) vs Class {class_2} - Group {team_2} ({name_roles_2})**"):
-                                        if chat_buyer: st.write(chat_buyer.replace('$', '\$'))
+                                        if chat_buyer: st.write(chat_buyer.replace('$', '\\$'))
                                         else: st.write('Chat not found.')                                            
 
                                     with st.expander(f"**Class {class_1} - Group {team_1} ({name_roles_2}) vs Class {class_2} - Group {team_2} ({name_roles_1})**"):
-                                        if chat_seller: st.write(chat_seller.replace('$', '\$'))
+                                        if chat_seller: st.write(chat_seller.replace('$', '\\$'))
                                         else: st.write('Chat not found.') 
 
                             else: 
