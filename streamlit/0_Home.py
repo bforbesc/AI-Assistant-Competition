@@ -38,54 +38,55 @@ if 'show_set_password_form' in query_params:
 # Main login section if the user is not logged in
 if not st.session_state['authenticated']:
 
-    # Set session state value for email if not already set
-    if 'login_email' not in st.session_state:
-        st.session_state['login_email'] = ''  # or some default value
-    
-    st.title('AI Assistant Competition')
+    if not st.session_state['show_set_password_form']:
+        # Set session state value for email if not already set
+        if 'login_email' not in st.session_state:
+            st.session_state['login_email'] = ''  # or some default value
 
-    st.header("Login")
-    
-    # Input fields for email and password
-    email = st.text_input("**Email**", value=st.session_state['login_email'])
-    password = st.text_input("**Password**", type="password", value=st.session_state['login_password'])
+        st.title('AI Assistant Competition')
 
-    # Create columns to place the buttons
-    col1, col2 = st.columns([5, 1])
-    
-    with col1:
-        # Login button on the left
-        login_button = st.button("Login", key="login_button")
-    
-    with col2:
-        # Set password link that reloads the page with show_set_password_form=true
-        st.markdown(
-            "<a href='?show_set_password_form=true'>Set Password</a>",
-            unsafe_allow_html=True
-        )
+        st.header("Login")
 
-    # If login button is pressed
-    if login_button:
-        # Hash password before authentication
-        hashed_password = hashlib.sha256(password.encode()).hexdigest()
-        
-        # Authenticate user
-        if authenticate_user(email, hashed_password):
-            st.session_state['login_email'] = email
-            st.session_state['login_password'] = password
-            st.success("Login successful!")
-            time.sleep(2)
-            # Check if user is a professor
-            st.session_state['professor'] = is_professor(email)
-            st.session_state['authenticated'] = True
-            user_id = get_user_id_by_email(email)  # Default to empty if no user_id is found
-            st.session_state.update({'user_id': user_id})
-            st.rerun()  # Rerun the page after successful login
-        else:
-            st.error("Invalid email or password")
+        # Input fields for email and password
+        email = st.text_input("**Email**", value=st.session_state['login_email'])
+        password = st.text_input("**Password**", type="password", value=st.session_state['login_password'])
+
+        # Create columns to place the buttons
+        col1, col2 = st.columns([5, 1])
+
+        with col1:
+            # Login button on the left
+            login_button = st.button("Login", key="login_button")
+
+        with col2:
+            # Set password link that reloads the page with show_set_password_form=true
+            st.markdown(
+                "<a href='?show_set_password_form=true'>Set Password</a>",
+                unsafe_allow_html=True
+            )
+
+        # If login button is pressed
+        if login_button:
+            # Hash password before authentication
+            hashed_password = hashlib.sha256(password.encode()).hexdigest()
+
+            # Authenticate user
+            if authenticate_user(email, hashed_password):
+                st.session_state['login_email'] = email
+                st.session_state['login_password'] = password
+                st.success("Login successful!")
+                time.sleep(2)
+                # Check if user is a professor
+                st.session_state['professor'] = is_professor(email)
+                st.session_state['authenticated'] = True
+                user_id = get_user_id_by_email(email)  # Default to empty if no user_id is found
+                st.session_state.update({'user_id': user_id})
+                st.rerun()  # Rerun the page after successful login
+            else:
+                st.error("Invalid email or password")
 
     # Set password section
-    if st.session_state.get('show_set_password_form'):
+    else:
         st.header("Set Password")
 
         set_password_email = st.text_input("Enter your email address", key="set_password_email", value=st.session_state['set_password_email'])

@@ -549,11 +549,11 @@ if st.session_state['authenticated']:
 
                             st.write('')
                             col1, col2, col3, col4 = st.columns(4)
-                            with col1: param1_edit = st.number_input("Minimum Low-Value", min_value=0, step=1, value=int(params_stored[0]/1000))
-                            with col2: param2_edit = st.number_input("Maximum Low-Value", min_value=0, step=1, value=int(params_stored[1]/1000))
-                            with col3: param3_edit = st.number_input("Minimum High-Value", min_value=0, step=1, value=int(params_stored[2]/1000))
-                            with col4: param4_edit = st.number_input("Maximum High-Value", min_value=0, step=1, value=int(params_stored[3]/1000),
-                                                     help='All values are expressed in thousands.')
+                            with col1: param1_edit = st.number_input("Minimum Low-Value", min_value=0, step=1, value=int(params_stored[0]))
+                            with col2: param2_edit = st.number_input("Maximum Low-Value", min_value=0, step=1, value=int(params_stored[1]))
+                            with col3: param3_edit = st.number_input("Minimum High-Value", min_value=0, step=1, value=int(params_stored[2]))
+                            with col4: param4_edit = st.number_input("Maximum High-Value", min_value=0, step=1, value=int(params_stored[3]),
+                                                     help='All values are expressed in the unit mentioned in description.')
                             
                             # Academic year-class combination selection
                             selected_combination_edit = st.selectbox(
@@ -602,21 +602,21 @@ if st.session_state['authenticated']:
                                     # Handling Values.txt
                                     different_groups_classes = get_group_ids_from_game_id(game_id)
                                     if game_class_stored == game_class_edit and str(game_academic_year_stored) == game_academic_year_edit:
-                                        if params_stored[0]==param1_edit*1000 and params_stored[1]==param2_edit*1000 and params_stored[2]==param3_edit*1000 and params_stored[3]==param4_edit*1000:
+                                        if params_stored[0]==param1_edit and params_stored[1]==param2_edit and params_stored[2]==param3_edit and params_stored[3]==param4_edit:
                                             pass
                                         else:
-                                            text = f'{param1_edit*1000},{param2_edit*1000},{param3_edit*1000},{param4_edit*1000}\n'
+                                            text = f'{param1_edit},{param2_edit},{param3_edit},{param4_edit}\n'
                                             for i in different_groups_classes:
-                                                buy_value = int(round(random.uniform(param1_edit*1000, param2_edit*1000), -2))
-                                                sell_value = int(round(random.uniform(param3_edit*1000, param4_edit*1000), -2))
+                                                buy_value = int(round(random.uniform(param1_edit, param2_edit), -2))
+                                                sell_value = int(round(random.uniform(param3_edit, param4_edit), -2))
                                                 text += f'{i[0]},{i[1]},{buy_value},{sell_value}\n'
                                             overwrite_text_file(text, f'Values_{created_by_stored}_{game_id}_{timestamp_game_creation_stored}')
                                             
                                     else: 
-                                        text = f'{param1_edit*1000},{param2_edit*1000},{param3_edit*1000},{param4_edit*1000}\n'
+                                        text = f'{param1_edit},{param2_edit},{param3_edit},{param4_edit}\n'
                                         for i in different_groups_classes:
-                                            buy_value = int(round(random.uniform(param1_edit*1000, param2_edit*1000), -2))
-                                            sell_value = int(round(random.uniform(param3_edit*1000, param4_edit*1000), -2))
+                                            buy_value = int(round(random.uniform(param1_edit, param2_edit), -2))
+                                            sell_value = int(round(random.uniform(param3_edit, param4_edit), -2))
                                             text += f'{i[0]},{i[1]},{buy_value},{sell_value}\n'
                                         overwrite_text_file(text, f'Values_{created_by_stored}_{game_id}_{timestamp_game_creation_stored}')
 
