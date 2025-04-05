@@ -169,12 +169,12 @@ if st.session_state['authenticated']:
             submission = get_text_from_file_without_timestamp_aux(f'Game{game_id}_Class{CLASS}_Group{GROUP_ID}') 
 
             with st.expander("**Explanation**"):
-                game_explanation = get_text_from_file_aux(f'Explanation_{professor_id}_{game_id}_{timestamp_game_creation}')
+                game_explanation = get_text_from_file_without_timestamp_aux(f'Explanation_{professor_id}_{game_id}')
                 if game_explanation: st.write(f"{game_explanation}")
                 else: st.write("No explanation found for this game. Please contact your Professor.")
 
             with st.expander("**Private Information**"):
-                private_information = get_text_from_file_aux(f'Values_{professor_id}_{game_id}_{timestamp_game_creation}')
+                private_information = get_text_from_file_without_timestamp_aux(f'Values_{professor_id}_{game_id}')
                 if private_information:
                     private_information = private_information.split('\n')
                     private_information = [item.split(',') for item in private_information if item]
@@ -182,7 +182,9 @@ if st.session_state['authenticated']:
                         if i[0] == CLASS and int(i[1]) == GROUP_ID:
                             values = i
                             break
-                    st.write(f"{name_roles_1}: {values[2]}; {name_roles_2}: {values[3]}.")
+                    st.write(f"The following information is private and group-specific. Do not share it with others:")
+                    st.write(f"When playing as **{name_roles_1}**, your valuation is: **{values[2]}**;")
+                    st.write(f"When playing as **{name_roles_2}**, your valuation is: **{values[3]}**.")
                 else:
                     st.write("No private information found for this game. Please contact your Professor.")
 
