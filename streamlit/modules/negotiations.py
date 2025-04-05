@@ -79,7 +79,7 @@ def create_agents(game_id, order, teams, values, name_roles, config_list, negoti
 
     elif config_list["config_list"][0]["model"] == "gpt-4o": words = 50
 
-    else: words = 15
+    else: words = 50
 
     for team in teams:
 
@@ -90,21 +90,21 @@ def create_agents(game_id, order, teams, values, name_roles, config_list, negoti
     
         prompts = [part.strip() for part in submission.split('#_;:)')]
 
-        if order == "opposite": 
+        if order == "opposite":
             aux_val = value1
             value1 = value2
             value2 = aux_val
-            prompts = prompts[::-1]
+            prompts = prompts[::-1] # reverse the prompts
 
         new_team = {"Name": f'Class{team[0]}_Group{team[1]}',
-                    "Value 1": value1,
-                    "Value 2": value2,
+                    "Value 1": value1, # value as role_1
+                    "Value 2": value2, # value as role_2
                     "Agent 1": autogen.ConversableAgent(
                                 name=f"Class{team[0]}_Group{team[1]}_{role_1}",
                                 llm_config=config_list,
                                 human_input_mode="NEVER",
                                 chat_messages=None,
-                                system_message = prompts[0] + f"When the negotiation is finished, say {negotiation_termination_message}. This is a short conversation, you will have about 10 opportunities to intervene. Try to keep your answers concise, try not to go over {words} words.",
+                                system_message = prompts[0] + f" When the negotiation is finished, say {negotiation_termination_message}. This is a short conversation, you will have about 10 opportunities to intervene. Try to keep your answers concise, try not to go over {words} words.",
                                 is_termination_msg=lambda msg: negotiation_termination_message in msg["content"]
                                 ),
 
@@ -113,7 +113,7 @@ def create_agents(game_id, order, teams, values, name_roles, config_list, negoti
                                 llm_config=config_list,
                                 human_input_mode="NEVER",
                                 chat_messages=None,
-                                system_message = prompts[1] + f'When the negotiation is finished, say {negotiation_termination_message}. This is a short conversation, you will have about 10 opportunities to intervene. Try to keep your answers concise, try not to go over {words} words.',
+                                system_message = prompts[1] + f' When the negotiation is finished, say {negotiation_termination_message}. This is a short conversation, you will have about 10 opportunities to intervene. Try to keep your answers concise, try not to go over {words} words.',
                                 is_termination_msg=lambda msg: negotiation_termination_message in msg["content"]
                                 )                
                     }

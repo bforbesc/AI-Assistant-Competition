@@ -288,15 +288,15 @@ if st.session_state['authenticated']:
                         game_explanation = st.text_area("Game Explanation", key="explanation")
                 
                         col1, col2 = st.columns(2)
-                        with col1: name_roles_1 = st.text_input("Name of Low-Value Role", value = 'Buyer')
-                        with col2: name_roles_2 = st.text_input("Name of High-Value Role", value = 'Seller')
+                        with col1: name_roles_1 = st.text_input("Name of Minimizer Role", value = 'Buyer')
+                        with col2: name_roles_2 = st.text_input("Name of Maximizer Role", value = 'Seller')
 
                         st.write('')
                         col1, col2, col3, col4 = st.columns(4)
-                        with col1: param1 = st.number_input("Minimum Low-Value", min_value=0, step=1, value=9)
-                        with col2: param2 = st.number_input("Maximum Low-Value", min_value=0, step=1, value=11)
-                        with col3: param3 = st.number_input("Minimum High-Value", min_value=0, step=1, value=19)
-                        with col4: param4 = st.number_input("Maximum High-Value", min_value=0, step=1, value=21,
+                        with col1: param1 = st.number_input("Lower Bound for Minimizer Valuation", min_value=0, step=1, value=9)
+                        with col2: param2 = st.number_input("Upper Bound for Minimizer Valuation", min_value=0, step=1, value=11)
+                        with col3: param3 = st.number_input("Lower Bound for Maximizer Valuation", min_value=0, step=1, value=19)
+                        with col4: param4 = st.number_input("Upper Bound for Maximizer Valuation", min_value=0, step=1, value=21,
                                                      help='All values are expressed in the unit mentioned in description.')
 
                         # Academic year and class selection
@@ -439,14 +439,14 @@ if st.session_state['authenticated']:
                                     st.write(f"**Class**: {selected_game['game_class']}")
                                     st.write("")
                                     col1, col2 = st.columns(2)
-                                    with col1: st.write(f"**Name of Low-Value Role**: {selected_game['name_roles'].split('#_;:)')[0]}")
-                                    with col2: st.write(f"**Name of High-Value Role**: {selected_game['name_roles'].split('#_;:)')[1]}")
+                                    with col1: st.write(f"**Name of Minimizer Role**: {selected_game['name_roles'].split('#_;:)')[0]}")
+                                    with col2: st.write(f"**Name of Maximizer Role**: {selected_game['name_roles'].split('#_;:)')[1]}")
                                     col1, col2= st.columns(2)
-                                    with col1: st.write(f"**Minimum Low-Value**: {params[0]}")
-                                    with col2: st.write(f"**Minimum High-Value**: {params[2]}")
+                                    with col1: st.write(f"**Lower Bound for Minimizer Valuation**: {params[0]}")
+                                    with col2: st.write(f"**Lower Bound for Maximizer Valuation**: {params[2]}")
                                     col1, col2= st.columns(2)
-                                    with col1: st.write(f"**Maximum Low-Value**: {params[1]}")
-                                    with col2: st.write(f"**Maximum High-Value**: {params[3]}")
+                                    with col1: st.write(f"**Upper Bound for Minimizer Valuation**: {params[1]}")
+                                    with col2: st.write(f"**Upper Bound for Maximizer Valuation**: {params[3]}")
                                     st.write("")
                                     st.write(f"**Password**: {selected_game['password']}")
                                     st.write(f"**Creation Time**: {selected_game['timestamp_game_creation']}")
@@ -542,17 +542,17 @@ if st.session_state['authenticated']:
                             
                             col1, col2 = st.columns(2)
                             with col1:
-                                name_roles_1_edit = st.text_input("Name of Low-Value Role", key="name_roles_1_edit", value=name_roles_1_stored)
+                                name_roles_1_edit = st.text_input("Name of Minimizer Role", key="name_roles_1_edit", value=name_roles_1_stored)
                             
                             with col2:
-                                name_roles_2_edit = st.text_input("Name of High-Value Role", key="name_roles_2_edit", value=name_roles_2_stored)
+                                name_roles_2_edit = st.text_input("Name of Maximizer Role", key="name_roles_2_edit", value=name_roles_2_stored)
 
                             st.write('')
                             col1, col2, col3, col4 = st.columns(4)
-                            with col1: param1_edit = st.number_input("Minimum Low-Value", min_value=0, step=1, value=int(params_stored[0]))
-                            with col2: param2_edit = st.number_input("Maximum Low-Value", min_value=0, step=1, value=int(params_stored[1]))
-                            with col3: param3_edit = st.number_input("Minimum High-Value", min_value=0, step=1, value=int(params_stored[2]))
-                            with col4: param4_edit = st.number_input("Maximum High-Value", min_value=0, step=1, value=int(params_stored[3]),
+                            with col1: param1_edit = st.number_input("Minimum Minimizer", min_value=0, step=1, value=int(params_stored[0]))
+                            with col2: param2_edit = st.number_input("Maximum Minimizer", min_value=0, step=1, value=int(params_stored[1]))
+                            with col3: param3_edit = st.number_input("Minimum Maximizer", min_value=0, step=1, value=int(params_stored[2]))
+                            with col4: param4_edit = st.number_input("Maximum Maximizer", min_value=0, step=1, value=int(params_stored[3]),
                                                      help='All values are expressed in the unit mentioned in description.')
                             
                             # Academic year-class combination selection
@@ -607,16 +607,16 @@ if st.session_state['authenticated']:
                                         else:
                                             text = f'{param1_edit},{param2_edit},{param3_edit},{param4_edit}\n'
                                             for i in different_groups_classes:
-                                                buy_value = int(round(random.uniform(param1_edit, param2_edit), -2))
-                                                sell_value = int(round(random.uniform(param3_edit, param4_edit), -2))
+                                                buy_value = int(random.uniform(param1_edit, param2_edit))
+                                                sell_value = int(random.uniform(param3_edit, param4_edit))
                                                 text += f'{i[0]},{i[1]},{buy_value},{sell_value}\n'
                                             overwrite_text_file(text, f'Values_{created_by_stored}_{game_id}_{timestamp_game_creation_stored}')
                                             
                                     else: 
                                         text = f'{param1_edit},{param2_edit},{param3_edit},{param4_edit}\n'
                                         for i in different_groups_classes:
-                                            buy_value = int(round(random.uniform(param1_edit, param2_edit), -2))
-                                            sell_value = int(round(random.uniform(param3_edit, param4_edit), -2))
+                                            buy_value = int(random.uniform(param1_edit, param2_edit))
+                                            sell_value = int(random.uniform(param3_edit, param4_edit))
                                             text += f'{i[0]},{i[1]},{buy_value},{sell_value}\n'
                                         overwrite_text_file(text, f'Values_{created_by_stored}_{game_id}_{timestamp_game_creation_stored}')
 
@@ -704,10 +704,10 @@ if st.session_state['authenticated']:
                                     model = st.selectbox('OpenAI Model', ['gpt-4o-mini', 'gpt-4o'])
                                     num_rounds =  st.number_input('Number of Rounds', step=1, min_value=1, value=1, max_value=len(teams)-1)
                                     conversation_starter = st.radio('Conversation Starter', [f'{name_roles_1} ➡ {name_roles_2}', f'{name_roles_2} ➡ {name_roles_1}'], horizontal=True)
-                                    starting_message =  st.text_input('Starting Messsage', value='I want to buy this car.')
+                                    starting_message =  st.text_input('Starting Messsage', value='Hello, shall we start the negotiation?')
                                     num_turns =  st.number_input('Maximum Number of Turns', step=1, min_value=1, value=15)
                                     negotiation_termination_message = st.text_input('Negotiation Termination Message', value='Pleasure doing business with you')
-                                    summary_prompt = st.text_input('Negotiation Summary Prompt', value='For how much was the car sold?')
+                                    summary_prompt = st.text_input('Negotiation Summary Prompt', value='What was the value agreed?')
                                     summary_termination_message = st.text_input('Summary Termination Message', value='The value agreed was')
 
                                     submit_button = st.form_submit_button(label='Run')
@@ -970,10 +970,10 @@ if st.session_state['authenticated']:
                                             "Class": row["team_class"],
                                             "Group ID": row["team_id"],
                                             "Score": row["average_score"],
-                                            "Position (Low-Value Role)": row["position_name_roles_1"],
-                                            "Score (Low-Value Role)": row["score_name_roles_1"],
-                                            "Position (High-Value Role)": row["position_name_roles_2"],
-                                            "Score (High-Value Role)": row["score_name_roles_2"],
+                                            "Position (Minimizer Role)": row["position_name_roles_1"],
+                                            "Score (Minimizer Role)": row["score_name_roles_1"],
+                                            "Position (Maximizer Role)": row["position_name_roles_2"],
+                                            "Score (Maximizer Role)": row["score_name_roles_2"],
                                         }
                                         for row in leaderboard
                                     ]
@@ -985,17 +985,17 @@ if st.session_state['authenticated']:
                                             "Class", 
                                             "Group ID", 
                                             "Score", 
-                                            "Position (Low-Value Role)",
-                                            "Score (Low-Value Role)",
-                                            "Position (High-Value Role)",
-                                            "Score (High-Value Role)"
+                                            "Position (Minimizer Role)",
+                                            "Score (Minimizer Role)",
+                                            "Position (Maximizer Role)",
+                                            "Score (Maximizer Role)"
                                         ]
                                     )
 
                                     # Round the numerical columns to two decimal places
                                     leaderboard_df["Score"] = leaderboard_df["Score"].round(2)
-                                    leaderboard_df["Score (Low-Value Role)"] = leaderboard_df["Score (Low-Value Role)"].round(2)
-                                    leaderboard_df["Score (High-Value Role)"] = leaderboard_df["Score (High-Value Role)"].round(2)
+                                    leaderboard_df["Score (Minimizer Role)"] = leaderboard_df["Score (Minimizer Role)"].round(2)
+                                    leaderboard_df["Score (Maximizer Role)"] = leaderboard_df["Score (Maximizer Role)"].round(2)
 
                                     # Adjust the index to start from 1
                                     leaderboard_df.index = leaderboard_df.index + 1
@@ -1017,10 +1017,10 @@ if st.session_state['authenticated']:
                                             "Class": row["team_class"],
                                             "Group ID": row["team_id"],
                                             "Score": row["average_score"],
-                                            "Position (Low-Value Role)": row["position_name_roles_1"],
-                                            "Score (Low-Value Role)": row["score_name_roles_1"],
-                                            "Position (High-Value Role)": row["position_name_roles_2"],
-                                            "Score (High-Value Role)": row["score_name_roles_2"],
+                                            "Position (Minimizer Role)": row["position_name_roles_1"],
+                                            "Score (Minimizer Role)": row["score_name_roles_1"],
+                                            "Position (Maximizer Role)": row["position_name_roles_2"],
+                                            "Score (Maximizer Role)": row["score_name_roles_2"],
                                         }
                                         for row in leaderboard
                                     ]
@@ -1032,17 +1032,17 @@ if st.session_state['authenticated']:
                                             "Class", 
                                             "Group ID", 
                                             "Score", 
-                                            "Position (Low-Value Role)",
-                                            "Score (Low-Value Role)",
-                                            "Position (High-Value Role)",
-                                            "Score (High-Value Role)"
+                                            "Position (Minimizer Role)",
+                                            "Score (Minimizer Role)",
+                                            "Position (Maximizer Role)",
+                                            "Score (Maximizer Role)"
                                         ]
                                     )
 
                                     # Round the numerical columns to two decimal places
                                     leaderboard_df["Score"] = leaderboard_df["Score"].round(2)
-                                    leaderboard_df["Score (Low-Value Role)"] = leaderboard_df["Score (Low-Value Role)"].round(2)
-                                    leaderboard_df["Score (High-Value Role)"] = leaderboard_df["Score (High-Value Role)"].round(2)
+                                    leaderboard_df["Score (Minimizer Role)"] = leaderboard_df["Score (Minimizer Role)"].round(2)
+                                    leaderboard_df["Score (Maximizer Role)"] = leaderboard_df["Score (Maximizer Role)"].round(2)
 
                                     # Adjust the index to start from 1
                                     leaderboard_df.index = leaderboard_df.index + 1
