@@ -75,7 +75,7 @@ if not st.session_state['authenticated']:
                 st.session_state['login_email'] = email
                 st.session_state['login_password'] = password
                 st.success("Login successful!")
-                time.sleep(2)
+                # time.sleep(2)
                 # Check if user is a professor
                 st.session_state['professor'] = is_professor(email)
                 st.session_state['authenticated'] = True
@@ -138,7 +138,7 @@ if not st.session_state['authenticated']:
                             hashed_password = hashlib.sha256(password.encode()).hexdigest()
                             if update_password(st.session_state['set_password_email'], hashed_password):
                                 st.success("Password successfully set!")
-                                time.sleep(2)
+                                # time.sleep(2)
                                 st.switch_page("0_Home.py")
                             else:
                                 st.error("Failed to set password.")
@@ -166,7 +166,7 @@ else:
             for key in list(st.session_state.keys()):
                 del st.session_state[key]
             st.cache_resource.clear()
-            time.sleep(2)
+            # time.sleep(2)
             st.switch_page("0_Home.py")
 
     st.title('AI Assistant Competition')

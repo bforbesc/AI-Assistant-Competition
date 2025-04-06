@@ -36,7 +36,7 @@ if st.session_state['authenticated']:
             for key in list(st.session_state.keys()):
                 del st.session_state[key]
             st.cache_resource.clear()
-            time.sleep(2)
+            # time.sleep(2)
             st.switch_page("0_Home.py")  # Redirect to home page
 
     if st.session_state['professor']: 
@@ -123,7 +123,7 @@ if st.session_state['authenticated']:
                         if selected_game['password'] == password_input:
                             st.success("Correct Password.")
                             st.session_state.not_show_game_password_form.append(selected_game)
-                            time.sleep(2)
+                            # time.sleep(2)
                             st.rerun()
 
                         else:
@@ -142,7 +142,7 @@ if st.session_state['authenticated']:
                     prompts = text_area_1 + '\n\n' + '#_;:)' + '\n\n' + text_area_2
                     overwrite_text_file(prompts, f"Game{game_id}_Class{CLASS}_Group{GROUP_ID}_{dt.now().strftime('%Y-%m-%d %H:%M:%S')}")
                     success = st.success('Submission Successful')
-                    time.sleep(2)
+                    # time.sleep(2)
                     success.empty()
 
         else:
