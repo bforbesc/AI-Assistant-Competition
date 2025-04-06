@@ -1,6 +1,7 @@
 # AI-Assistant-Competition
 
-This App was 
+This App was developed with the goal of creating a platform for students to create and train their own AI assistants (bots) to compete in various negotiation challenges. The project is part of the course AI Impact on Business at Nova SBE, and the initial focus is on negotiation games, such as variations of the Ultimatum Game or the Prisoner's Dilemma. The platform provides a user-friendly interface for students to design, train, and test their Assistants, as well as a leaderboard to track their performance.
+
 
 ## Project Description 
 This project aims to develop a platform for bot/AI Assistant competition that allows students to create and train their own bots to compete in various negotiation challenges. The initial focus will be on negotiation games, such as variations of the Ultimatum Game or the Prisoner's Dilemma. The platform shall provide a user-friendly interface for students to design, train, and test their Assistants, as well as a leaderboard to track their performance.
