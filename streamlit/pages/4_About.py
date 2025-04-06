@@ -13,7 +13,7 @@ if st.session_state['authenticated']:
             for key in list(st.session_state.keys()):
                 del st.session_state[key]
             st.cache_resource.clear()
-            time.sleep(2)
+            # time.sleep(2)
             st.switch_page("0_Home.py")
 
     st.header("About")

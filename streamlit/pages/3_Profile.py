@@ -24,7 +24,7 @@ if st.session_state['authenticated']:
             for key in list(st.session_state.keys()):
                 del st.session_state[key]
             st.cache_resource.clear()
-            time.sleep(2)
+            # time.sleep(2)
             st.switch_page("0_Home.py")  # Redirect to home page
 
     if st.session_state.professor == True:
@@ -97,7 +97,7 @@ if st.session_state['authenticated']:
                                     st.success("Password updated successfully!")
                                     st.session_state['login_password'] = new_password  # Update session state password
                                     st.session_state['password_edit_mode'] = False  # Reset edit mode
-                                    time.sleep(2)
+                                    # time.sleep(2)
                                     st.rerun()  # Rerun to reset the page
                                 else:
                                     st.error("Failed to update password.")
@@ -108,7 +108,7 @@ if st.session_state['authenticated']:
                             st.error("Passwords do not match.")
                     else:
                         error = st.error("Please fill in both password fields.")
-                        time.sleep(2)
+                        # time.sleep(2)
                         error.empty()
 
     elif st.session_state.professor == False:
@@ -189,7 +189,7 @@ if st.session_state['authenticated']:
                                         st.success("Password updated successfully!")
                                         st.session_state['login_password'] = new_password  # Update session state password
                                         st.session_state['password_edit_mode'] = False  # Reset edit mode
-                                        time.sleep(2)
+                                        # time.sleep(2)
                                         st.rerun()  # Rerun to reset the page
                                     else:
                                         st.error("Failed to update password.")
@@ -200,7 +200,7 @@ if st.session_state['authenticated']:
                                 st.error("Passwords do not match.")
                         else:
                             error = st.error("Please fill in both password fields.")
-                            time.sleep(2)
+                            # time.sleep(2)
                             error.empty()
 
         if selection == 'Leaderboard':
