@@ -142,7 +142,7 @@ def create_chats(game_id, config_list, name_roles, order, teams, values, num_rou
         llm_config=config_list,
         human_input_mode="NEVER",
         is_termination_msg=lambda msg: summary_termination_message in msg["content"],
-        system_message = f"You will be asked to answer a quick question regarding the outcome of a negotiation. You will be provided with the last 4 interactions of the negotiation and your answer should be based on them. Your answer must be of the type {summary_termination_message}, just adding the value agreed, as in '{summary_termination_message} x', x being the value. Make sure the conversation has ended with {negotiation_termination_message}, otherwise the negotiation has not been finalized and there was no agreement. If this happens, i.e., if the final message does not include {negotiation_termination_message}, your answer should be '{summary_termination_message} -1'."  
+        system_message = f"You will be asked to answer a quick question regarding the outcome of a negotiation. You will be provided with the last 4 interactions of the negotiation and your answer should be based on them. Your answer must be of the type {summary_termination_message}, just adding the value agreed, as in '{summary_termination_message} x', x being the value. Make sure the intervenients have reached an agreement. This means that they both agree on the same value and that the conversation ends with {negotiation_termination_message}. However, this is not enough. Please make sure both parties have reached an agreement. If there is no agreement, your answer should be '{summary_termination_message} -1'."
     )
 
     max_retries = 10
