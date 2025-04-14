@@ -36,7 +36,7 @@ if st.session_state['authenticated']:
             for key in list(st.session_state.keys()):
                 del st.session_state[key]
             st.cache_resource.clear()
-            # time.sleep(2)
+            # time.sleep(1)
             st.switch_page("0_Home.py")  # Redirect to home page
 
     if st.session_state['professor']: 
@@ -87,7 +87,7 @@ if st.session_state['authenticated']:
                 # Get the Game explanation from Google Drive using the filename
                 game_explanation = get_text_from_file_aux(f'Explanation_{professor_id}_{game_id}_{timestamp_game_creation}')
                 if game_explanation:
-                    st.write(f"{game_explanation}")
+                    st.write(f"{game_explanation}\n\n**Note:** The game explanation is not passed automatically to the agent. If you want to do it, you must place it in the prompt explicitly.")
                 else:
                     st.write("No explanation found for this game. Please contact your Professor.")
                 
@@ -103,8 +103,8 @@ if st.session_state['authenticated']:
                             values = i
                             break
                     st.write(f"The following information is private and group-specific. Do not share it with others:")
-                    st.write(f"When playing as **{name_roles_1}**, your valuation is: **{values[2]}**;")
-                    st.write(f"When playing as **{name_roles_2}**, your valuation is: **{values[3]}**.")
+                    st.write(f"When playing as **{name_roles_1}**, your reservation value is: **{values[2]}**;")
+                    st.write(f"When playing as **{name_roles_2}**, your reservation value is: **{values[3]}**.")
 
                 else:
                     st.write("No private information found for this game.")
@@ -123,7 +123,7 @@ if st.session_state['authenticated']:
                         if selected_game['password'] == password_input:
                             st.success("Correct Password.")
                             st.session_state.not_show_game_password_form.append(selected_game)
-                            # time.sleep(2)
+                            # time.sleep(1)
                             st.rerun()
 
                         else:
@@ -134,16 +134,16 @@ if st.session_state['authenticated']:
                 st.write('')
                 
                 with st.form(key='form_inputs'):
-                    text_area_1 = st.text_area(f'{name_roles_1} Prompt', help='A good prompt should be clear, specific, and provide enough context and detail about your position, interests, and desired outcomes.')
-                    text_area_2 = st.text_area(f'{name_roles_2} Prompt')
+                    text_area_1 = st.text_area(f'{name_roles_1} Prompt', max_chars = 7000, help='A good prompt should be clear, specific, and provide enough context and detail about your position, interests, and desired outcomes. Note that the game explanation is not passed automatically to the agent. If you want to do it, you must place it in the prompt explicitly.')
+                    text_area_2 = st.text_area(f'{name_roles_2} Prompt', max_chars = 7000)
                     submit_button = st.form_submit_button('Submit')
 
                 if submit_button:                    
                     prompts = text_area_1 + '\n\n' + '#_;:)' + '\n\n' + text_area_2
                     overwrite_text_file(prompts, f"Game{game_id}_Class{CLASS}_Group{GROUP_ID}_{dt.now().strftime('%Y-%m-%d %H:%M:%S')}")
-                    success = st.success('Submission Successful')
-                    # time.sleep(2)
-                    success.empty()
+                    success = st.success('Submission Successful. You can adjust your prompts until the deadline.')
+                    # time.sleep(1)
+                    # success.empty()
 
         else:
             st.write("There are no current games.")

@@ -79,7 +79,7 @@ if st.session_state['authenticated']:
             for key in list(st.session_state.keys()):
                 del st.session_state[key]
             st.cache_resource.clear()
-            # time.sleep(2)
+            # time.sleep(1)
             st.switch_page("0_Home.py")  # Redirect to home page
 
     # Check if the user is a professor
@@ -112,16 +112,18 @@ if st.session_state['authenticated']:
 
                     # Function to add students from a CSV file
                     def add_students_from_csv(file):
+                        print("Adding students from CSV file...")
                         try:
                             # Read CSV with a semicolon delimiter
                             df = pd.read_csv(file, sep=';', dtype={'academic year': str})
+                            print("CSV file read successfully.")
                             
                             # Check if all required columns exist in the CSV
                             if 'userID' not in df.columns or 'email' not in df.columns or 'groupID' not in df.columns or 'academic year' \
                                 not in df.columns or 'class' not in df.columns:
                                 st.error("CSV must contain 'userID', 'email', 'groupID', 'academic year' and 'class' columns.")
                                 return
-                            
+
                             # Insert student data row by row
                             for _, row in df.iterrows():
                                 user_id = row['userID']
@@ -129,6 +131,8 @@ if st.session_state['authenticated']:
                                 group_id = row['groupID']
                                 academic_year = row['academic year']
                                 class_ = row['class']
+
+                                print(f"Adding student: {user_id}, {email}, {group_id}, {academic_year}, {class_}")
 
                                 if insert_student_data(user_id, email, "Not defined", group_id, academic_year, class_):
                                     continue
@@ -224,7 +228,7 @@ if st.session_state['authenticated']:
                                     st.error("Please upload a valid CSV file.")
                                 st.session_state.add_students = False
                                 st.session_state.action = "Student Management"
-                                # time.sleep(2)
+                                time.sleep(1)
                                 st.rerun()
 
                     # Handle manual student addition
@@ -248,7 +252,7 @@ if st.session_state['authenticated']:
                                         st.error("Failed to add student. Please try again.")
                                     st.session_state.add_student = False
                                     st.session_state.action = "Student Management"
-                                    # time.sleep(2)
+                                    time.sleep(1)
                                     st.rerun()
 
                     # Handle student removal
@@ -268,7 +272,7 @@ if st.session_state['authenticated']:
                                 st.warning("Please select a student to remove.")
                         st.session_state.remove_student = False
                         st.session_state.action = "Student Management"
-                        # time.sleep(2)
+                        time.sleep(1)
                         st.rerun()
 
                 case "Create Game":  # Allow professor to create a game
@@ -293,10 +297,10 @@ if st.session_state['authenticated']:
 
                         st.write('')
                         col1, col2, col3, col4 = st.columns(4)
-                        with col1: param1 = st.number_input("Lower Bound for Minimizer Valuation", min_value=0, step=1, value=9)
-                        with col2: param2 = st.number_input("Upper Bound for Minimizer Valuation", min_value=0, step=1, value=11)
-                        with col3: param3 = st.number_input("Lower Bound for Maximizer Valuation", min_value=0, step=1, value=19)
-                        with col4: param4 = st.number_input("Upper Bound for Maximizer Valuation", min_value=0, step=1, value=21,
+                        with col1: param1 = st.number_input("Lower Bound for Minimizer Reservation Value", min_value=0, step=1, value=16)
+                        with col2: param2 = st.number_input("Upper Bound for Minimizer Reservation Value", min_value=0, step=1, value=25)
+                        with col3: param3 = st.number_input("Lower Bound for Maximizer Reservation Value", min_value=0, step=1, value=7)
+                        with col4: param4 = st.number_input("Upper Bound for Maximizer Reservation Value", min_value=0, step=1, value=15,
                                                      help='All values are expressed in the unit mentioned in description.')
 
                         # Academic year and class selection
@@ -356,7 +360,7 @@ if st.session_state['authenticated']:
                                 # Populate the 'plays' table with eligible students
                                 if not populate_plays_table(next_game_id, game_academic_year, game_class):
                                     error = st.error("An error occurred while assigning students to the game.")
-                                    # time.sleep(2)
+                                    time.sleep(1)
                                     error.empty()
                                 
                                 different_groups_classes = get_group_ids_from_game_id(next_game_id)
@@ -369,17 +373,17 @@ if st.session_state['authenticated']:
                                 upload_text_as_file(text, f"Values_{user_id}_{next_game_id}_{timestamp_game_creation}")
 
                                 success = st.success("Game created successfully!")
-                                # time.sleep(2)
+                                time.sleep(1)
                                 success.empty()
 
                             except Exception:
                                 error = st.error("An error occurred. Please try again.")
-                                # time.sleep(2)
+                                time.sleep(1)
                                 error.empty()
 
                         else:
                             warning = st.warning("Please fill out all fields before submitting.")
-                            # time.sleep(2)
+                            time.sleep(1)
                             warning.empty()
  
                 case "Available Games": # Allow professor to see and edit the available games
@@ -442,11 +446,11 @@ if st.session_state['authenticated']:
                                     with col1: st.write(f"**Name of Minimizer Role**: {selected_game['name_roles'].split('#_;:)')[0]}")
                                     with col2: st.write(f"**Name of Maximizer Role**: {selected_game['name_roles'].split('#_;:)')[1]}")
                                     col1, col2= st.columns(2)
-                                    with col1: st.write(f"**Lower Bound for Minimizer Valuation**: {params[0]}")
-                                    with col2: st.write(f"**Lower Bound for Maximizer Valuation**: {params[2]}")
+                                    with col1: st.write(f"**Lower Bound for Minimizer Reservation Value**: {params[0]}")
+                                    with col2: st.write(f"**Lower Bound for Maximizer Reservation Value**: {params[2]}")
                                     col1, col2= st.columns(2)
-                                    with col1: st.write(f"**Upper Bound for Minimizer Valuation**: {params[1]}")
-                                    with col2: st.write(f"**Upper Bound for Maximizer Valuation**: {params[3]}")
+                                    with col1: st.write(f"**Upper Bound for Minimizer Reservation Value**: {params[1]}")
+                                    with col2: st.write(f"**Upper Bound for Maximizer Reservation Value**: {params[3]}")
                                     st.write("")
                                     st.write(f"**Password**: {selected_game['password']}")
                                     st.write(f"**Creation Time**: {selected_game['timestamp_game_creation']}")
@@ -626,7 +630,7 @@ if st.session_state['authenticated']:
                                     st.error(f"An error occurred. Please try again.")
                             else:
                                 warning = st.warning("Please fill out all fields before submitting.")
-                                # time.sleep(2)
+                                time.sleep(1)
                                 warning.empty()
 
                 case "Run Simulation":
@@ -733,14 +737,14 @@ if st.session_state['authenticated']:
                                         outcome_simulation = create_chats(game_id, config_list, name_roles, order, teams, values, num_rounds, starting_message, num_turns, negotiation_termination_message, summary_prompt, summary_termination_message)
                                         if outcome_simulation == "All negotiations were completed successfully!":
                                             success = st.success(outcome_simulation)
-                                            # time.sleep(2)
+                                            time.sleep(1)
                                             success.empty()
                                         else: 
                                             warning = st.warning(outcome_simulation)
 
                                     else:
                                         warning = st.warning("Please fill out all fields before submitting.")
-                                        # time.sleep(2)
+                                        time.sleep(1)
                                         warning.empty()
                             else: 
                                 st.write('There must be at least two submissions in order to run a simulation.')
@@ -774,18 +778,18 @@ if st.session_state['authenticated']:
                                         outcome_errors_simulation = create_all_error_chats(game_id, config_list, name_roles, simulation_params[1], values, simulation_params[2], simulation_params[3], simulation_params[4], simulation_params[5], simulation_params[6])                 
                                         if outcome_errors_simulation == "All negotiations were completed successfully!":
                                             success = st.success(outcome_errors_simulation)
-                                            # time.sleep(2)
+                                            time.sleep(1)
                                             success.empty()
                                             st.rerun()
                                         else: 
                                             warning = st.warning(outcome_errors_simulation)
-                                            # time.sleep(2)
+                                            time.sleep(1)
                                             warning.empty()
                                             st.rerun()
 
                                     else:
                                         warning = st.warning("Please fill out all fields before submitting.")
-                                        # time.sleep(2)
+                                        time.sleep(1)
                                         warning.empty()
 
                             else: st.write('No error chats found.')
@@ -883,7 +887,7 @@ if st.session_state['authenticated']:
                                     if access_disabled: 
                                         update_access_to_chats(0, selected_game['game_id'])
                                         success = st.success('Student Access successfully disabled.')
-                                        # time.sleep(2)
+                                        time.sleep(1)
                                         success.empty()
                                         st.rerun()
                                 
@@ -893,7 +897,7 @@ if st.session_state['authenticated']:
                                     if access_enabled: 
                                         update_access_to_chats(1, selected_game['game_id'])
                                         success = st.success('Student Access successfully enabled.')
-                                        # time.sleep(2)
+                                        time.sleep(1)
                                         success.empty()
                                         st.rerun()
 

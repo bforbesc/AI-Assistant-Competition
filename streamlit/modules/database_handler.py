@@ -432,6 +432,8 @@ def insert_student_data(user_id, email, temp_password, group_id, academic_year, 
         with psycopg2.connect(DB_CONNECTION_STRING) as conn:
             with conn.cursor() as cur:
 
+                print(f"User ID: {user_id}, Email: {email}, Temp Password: {temp_password}, Group ID: {group_id}, Academic Year: {academic_year}, Class: {class_}")
+
                 # Check if user already exists
                 query = "SELECT EXISTS(SELECT 1 FROM user_ WHERE user_id = %(param1)s);"
                 
@@ -555,14 +557,18 @@ def get_group_ids_from_game_id(game_id):
 
 # Function to check user credentials
 def authenticate_user(email, password_hash):
+    print(f"Authenticating user with email: {email} and password hash: {password_hash}")
+    print(f"DB_CONNECTION_STRING: {DB_CONNECTION_STRING}")
     try:
         with psycopg2.connect(DB_CONNECTION_STRING) as conn:
+            print("Connected to the database")
             with conn.cursor() as cur:
 
                 query = "SELECT 1 FROM user_ WHERE email = %(param1)s AND password = %(param2)s;"
 
+                print(f"Executing query: {query} with params: {email}, {password_hash}")
                 cur.execute(query, {'param1': email, 'param2':password_hash})
-
+                print("Query executed successfully")
                 # Fetch the result
                 exists = cur.fetchone()[0]
                 
