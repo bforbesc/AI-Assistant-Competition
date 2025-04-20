@@ -179,6 +179,7 @@ else:
                     - **Play**: Submit prompts for ongoing games, and check chats of previous games.
                     - **Control Panel**: A dedicated page accessible only to professors for administrative tasks.
                     - **Profile**: Manage personal information.
+                    - **Playground**: Test and refine AI agents in a sandbox environment.
                     - **About**: Learn more about the app's authors and contributors.
                     """)
     else:
@@ -187,5 +188,6 @@ else:
                     - **Play**: Submit prompts for ongoing games, and check chats of previous games.
                     - **Control Panel**: A dedicated page accessible only to professors for administrative tasks.
                     - **Profile**: View leaderboards and manage personal information.
+                    - **Playground**: Test and refine AI agents in a sandbox environment.
                     - **About**: Learn more about the app's authors and contributors.
                     """)
