@@ -1,0 +1,163 @@
+# PostgreSQL Database for AI Assistant Competition - Setup and Management
+
+## 1. Installing PostgreSQL
+
+### On macOS with Homebrew:
+```bash
+# Install PostgreSQL
+brew install postgresql
+
+# Start PostgreSQL service
+brew services start postgresql
+```
+
+### On Windows:
+- Download the PostgreSQL installer from https://www.postgresql.org/download/windows/
+- Follow the installation wizard and remember the admin password
+
+### On Linux (Ubuntu/Debian):
+```bash
+sudo apt update
+sudo apt install postgresql postgresql-contrib
+sudo systemctl start postgresql
+sudo systemctl enable postgresql
+```
+
+## 2. Create Database
+
+```bash
+# Create database for the project
+createdb ai_assistant_competition
+
+# On Windows you might need to connect via psql first:
+# psql -U postgres
+# CREATE DATABASE ai_assistant_competition;
+# \q
+```
+
+## 3. Create Tables
+
+Run the SQL scripts from the `Tables_AI_Negotiator.sql` file:
+
+```bash
+# Create tables from SQL file
+psql -d ai_assistant_competition -f Tables_AI_Negotiator.sql
+
+# Optional: Add test data
+psql -d ai_assistant_competition -f Populate_Tables_AI_Negotiator.sql
+```
+
+## 4. Configure Streamlit Secrets
+
+Create or edit the `.streamlit/secrets.toml` file with the following configuration:
+
+```toml
+# Database connection
+database = "postgresql://localhost/ai_assistant_competition"
+# Alternative with username/password
+# database = "postgresql://username:password@localhost/ai_assistant_competition"
+
+# Google Drive API credentials
+drive = """
+{
+  "type": "service_account",
+  "project_id": "your-project-id",
+  "private_key_id": "your-private-key-id",
+  "private_key": "-----BEGIN PRIVATE KEY-----\\n...\\n-----END PRIVATE KEY-----\\n",
+  "client_email": "your-service-account@your-project-id.iam.gserviceaccount.com",
+  "client_id": "your-client-id",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/your-service-account%40your-project-id.iam.gserviceaccount.com"
+}
+"""
+folder_id = "your-google-drive-folder-id"
+
+# Email settings
+mail = "your-email@gmail.com"
+mail_api = "your-app-password"
+app_link = "http://localhost:8501"
+```
+
+## 5. Test Database Connection
+
+Use this command to test the connection to your database:
+
+```bash
+psql -d ai_assistant_competition -c "SELECT 'Connection successful' AS status;"
+```
+
+## 6. Database Management
+
+### View database:
+```bash
+# Connect to the database
+psql -d ai_assistant_competition
+
+# Useful psql commands:
+# \dt     - List tables
+# \d TABLENAME - Show table schema
+# \q      - Exit psql
+```
+
+### Backup data:
+```bash
+# Create database backup
+pg_dump ai_assistant_competition > backup.sql
+```
+
+## 7. Delete Database
+
+When you no longer need the project or want to reset the database:
+
+```bash
+# Terminate connections to the database
+psql -c "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname='ai_assistant_competition';"
+
+# Delete database
+dropdb ai_assistant_competition
+
+# On Windows, you might need to use psql:
+# psql -U postgres
+# DROP DATABASE ai_assistant_competition;
+# \q
+```
+
+## 8. Completely Uninstall PostgreSQL
+
+### On macOS:
+```bash
+# Stop PostgreSQL service
+brew services stop postgresql
+
+# Uninstall PostgreSQL
+brew uninstall postgresql
+
+# Delete database directory (optional, deletes ALL data)
+rm -rf /usr/local/var/postgres
+```
+
+### On Windows:
+- Control Panel → Programs → Uninstall a program
+- Select PostgreSQL and uninstall
+
+### On Linux:
+```bash
+sudo systemctl stop postgresql
+sudo apt remove --purge postgresql postgresql-contrib
+sudo rm -rf /var/lib/postgresql/
+sudo userdel -r postgres
+```
+
+## Troubleshooting Notes:
+
+1. If the database connection doesn't work, check:
+   - Is the PostgreSQL service running? (`brew services list` or `systemctl status postgresql`)
+   - Is the connection string in secrets.toml correct?
+   - Do you have the right permissions?
+
+2. For Google Drive API error messages:
+   - Is the service account JSON formatted correctly?
+   - Is the Google Drive API enabled in your project?
+   - Does the service account have access to the specified folder?
