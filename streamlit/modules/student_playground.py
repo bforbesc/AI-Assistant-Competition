@@ -204,18 +204,3 @@ def display_student_playground():
         - Balance between being too specific (limiting flexibility) and too vague (causing unpredictable behavior)
         - Consider how your agent will interact with opponents using different strategies
         """)
-
-
-# Function to add the playground page to the Streamlit app
-def add_playground_to_app():
-    # Create the new playground.py file in the pages directory
-    return """
-import streamlit as st
-from modules.student_playground import display_student_playground
-
-# Configure page
-st.set_page_config(page_title="AI Assistant Playground", page_icon="🧪")
-
-# Display the playground
-display_student_playground()
-"""
