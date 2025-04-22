@@ -1,42 +1,171 @@
-# AI-Assistant-Competition
+# AI Assistant Competition 
 
-This App was developed with the goal of creating a platform for students to create and train their own AI assistants (bots) to compete in various negotiation challenges. The project is part of the course AI Impact on Business at Nova SBE, and the initial focus is on negotiation games, such as variations of the Ultimatum Game or the Prisoner's Dilemma. The platform provides a user-friendly interface for students to design, train, and test their Assistants, as well as a leaderboard to track their performance.
+Welcome to the AI Assistant Competition platform—a learning environment where students design, train, and deploy AI negotiators to compete in classical negotiation challenges (e.g., Ultimatum Game, Prisoner’s Dilemma). This document serves both as a quickstart for participants and a detailed guide for developers and contributors. 
 
+This App was developed to create a platform for students to create and train their own AI assistants (bots) to compete in various negotiation challenges. The project is part of the course "AI Impact on Business" at Nova SBE, and its initial focus is on negotiation games, such as variations of the Ultimatum Game or the Prisoner's Dilemma. The platform offers a user-friendly interface that enables students to design, train, and test their Assistants, along with a leaderboard to track their performance.
 
-## Project Description 
-This project aims to develop a platform for bot/AI Assistant competition that allows students to create and train their own bots to compete in various negotiation challenges. The initial focus will be on negotiation games, such as variations of the Ultimatum Game or the Prisoner's Dilemma. The platform shall provide a user-friendly interface for students to design, train, and test their Assistants, as well as a leaderboard to track their performance.
+---
 
-The project can be divided into 5 phases:
-1. _Platform Development and Literature Review:_ Designing and creating a user-friendly interface for the AI Assistant competition platform, along with a relevant survey of the existing tools and approaches.
-2. _Bot Creation and Strategy Definition:_ Providing functionalities that allow users on the platform and the results stored in a database for analysis.
-4. _Performance Tracking and Leaderboard Development:_ Creating a leaderboard to rank bots based on their competition performance and display their status.
-5. _Feedback and Improvement Cycle:_ Collecting user feedback for continuous improvements of the platform and the AI models.
+## Table of Contents
+1. [Overview](#overview)  
+2. [Participant Guide](#participant-guide)  
+   - [1. Create an Account](#1-create-an-account)  
+   - [2. Dashboard Tour](#2-dashboard-tour)  
+   - [3. Building a Bot](#3-building-a-bot)  
+   - [4. Submitting Your Bot](#4-submitting-your-bot)  
+   - [5. Running in the Playground](#5-running-in-the-playground)  
+   - [6. Viewing Results & Leaderboard](#6-viewing-results--leaderboard)  
+3. [Developer & Contributor Guide](#developer--contributor-guide)  
+   - [Prerequisites](#prerequisites)  
+   - [Local Setup](#local-setup)  
+   - [Database Initialization](#database-initialization)  
+   - [Running the App](#running-the-app)  
+   - [Project Structure](#project-structure)  
+   - [Testing](#testing)  
+   - [Contributing](#contributing)  
+4. [Roadmap & Feedback](#roadmap--feedback)  
+5. [References](#references)
 
-The platform shall include the following functionalities:
-1. User creation and management: Allow users to create accounts and manage their bots.
-2. Bot registration and submission: Allow users to register and submit their bots for various challenges.
-3. Negotiation game hosting: Conduct negotiation games on the platform and save the dialogue results for further analysis.
-4. Leaderboard: Maintain and display a leaderboard to rank bots based on their performance.
+---
 
-This project aims to foster the development of negotiation skills and understanding of AI's role in strategic decision-making.
+## Overview
+This platform empowers students to explore negotiation strategies by coding AI agents and evaluating them in structured games. Key features:
 
-## Requirements for the Platform
-### Functional Requirements
-1. User Registration and Management: Users should be able to create accounts, log in, and manage their profiles.
-2. Negotiation Game Hosting: The platform should host various negotiation games where users can submit their bots to compete.
-   1. The administrator should be able to create and manage negotiation game scenarios.
-   2. Negotiation games will have a defined structure, rules, and scoring system.
-   3. Negotiation games will have a training and submission phase, followed by a competition phase, where bots compete against each other (e.g., in a tournament format). This will be an automated process triggered by the administrator.
-3. Competition Hosting: The platform should host negotiation game competitions where users can submit their bots to compete against each other.
-4. Bot Creation and Training: Users should be able to create and train their bots using various negotiation game scenarios.
-5. Bot Submission: Users should be able to submit their trained bots to compete in negotiation games and competitions.
-6. Leaderboard: The platform should maintain a leaderboard to rank bots based on their performance in negotiation games and competitions. Leaderboards should be per game and overall.
+- **Multi-agent negotiation**: Host head‑to‑head matches across diverse game templates.
+- **Training & evaluation**: Iteratively refine your bot in a sandbox environment.
+- **Leaderboard & analytics**: Track performance metrics across rounds and semesters.
+- **Extensible architecture**: Plug in new games, roles, and scoring rules.
 
-### Technical Requirements
-1. Use streamlit for the front-end/dashboard
-2. Use autogen from microsoft for the interaction among agents
-3. Use a database to store user data, bot data, game data, and competition data; preferrable easy setup and maintenance
+---
 
+## Participant Guide
+
+### 1. Create an Account
+1. Navigate to the registration page (`/register`).  
+2. Provide your university ID, institutional email, and a secure password.  
+3. Verify your account via the confirmation link sent to your email.
+
+### 2. Dashboard Tour
+On login, you’ll see:
+
+- **My Bots**: List of bots you’ve built, status (Draft, Submitted, Tested).  
+- **Create New Bot**: Wizard to define a Python-based negotiation agent.  
+- **Competitions**: Upcoming tournaments and open submission windows.  
+- **Leaderboard**: Live rankings for each game and overall performance.
+
+### 3. Building a Bot
+1. Click **Create New Bot**.  
+2. Select a game template (e.g., Ultimatum, Prisoner’s Dilemma).  
+3. Provide your bot’s source folder or zip file following our [bot template API specification](/docs/bot_spec.md).  
+4. Upload and name your bot. It appears under **My Bots** with status **Draft**.
+
+### 4. Submitting Your Bot
+1. In **My Bots**, select the bot and choose **Submit to Competition**.  
+2. Pick the target game and confirm submission before the deadline.  
+3. After submission, your bot’s status changes to **Pending**. You’ll be notified when matches complete.
+
+### 5. Running in the Playground
+Before official submission, test your bot:
+
+- Go to **Playground**.  
+- Choose any registered bot (yours or public samples).  
+- Run a quick match and inspect detailed dialogue logs and analytics (e.g., offers made, acceptance rates).
+
+### 6. Viewing Results & Leaderboard
+After each tournament, visit **Leaderboard** to see:
+- Rank, win rate, average score per role.  
+- Detailed match history and conversation transcripts.
+
+---
+
+## Developer & Contributor Guide
+
+### Prerequisites
+- **Python 3.10+**  
+- **PostgreSQL 13+** (or MySQL as an alternative)  
+- **Node.js & npm** (for any front‑end build tasks)  
+- **Streamlit** (UI framework)  
+- **Autogen** (Microsoft multi-agent toolkit)
+
+### Local Setup
+1. **Clone the repo**:
+   ```bash
+   git clone https://github.com/your-org/ai-assistant-competition.git
+   cd ai-assistant-competition
+
+2. **Create and activate a virtual environment**
+- For Windowns:
+        python -m venv .venv
+     .\.venv\Scripts\activate
+- For macOS/Linux
+       python3 -m venv .venv
+  source .venv/bin/activate
+
+3. **Install dependencies**
+pip install --upgrade pip
+pip install -r requirements.txt
+
+4. **Configure environment variables**
+- Copy the example file and update credentials:
+
+cp .env.example .env
+
+Edit .env to set:
+
+DATABASE_URL=postgres://USER:PASSWORD@localhost:5432/ai_competition
+SECRET_KEY=your_secret_key_here
+
+## Database Initialization
+
+Initialize your database schema and optional seed data:
+
+psql $DATABASE_URL -f db/schema.sql
+psql $DATABASE_URL -f db/seeds.sql   # (optional) load test users & sample games
+
+## Running the App
+
+streamlit run app/main.py
+
+## Project Structure
+
+ai-assistant-competition/
+├── app/
+│   ├── main.py          # Streamlit entrypoint
+│   ├── agents/          # Bot interface and templates
+│   ├── db/              # Schema and seed scripts
+│   ├── services/        # Game orchestration & scoring logic
+│   ├── utils/           # Helpers (authentication, validation)
+│   └── ui/              # Shared UI components
+├── tests/               # Unit tests suite
+├── requirements.txt     # Python dependencies
+├── db/
+│   ├── schema.sql       # DDL definitions
+│   └── seeds.sql        # Sample data
+└── README.md            # Project overview & guides
+
+## Testing
+
+1. Ensure your virtual environment is active.
+2. Run all unit tests and view coverage:
+pytest --cov=app
+
+## Contributing
+
+We welcome pull requests! Please follow these steps:
+
+1. Fork the repository.
+
+2. Create a feature branch:
+
+git checkout -b feature/my-new-feature
+
+3. Write code & tests, adhering to PEP8 style and adding unit tests.
+
+4. Run tests locally: pytest.
+
+5. Submit a Pull Request, describing your changes and linking to any issue.
+
+Refer to CONTRIBUTING.md for detailed guidelines.
 
 ## References
 
@@ -44,14 +173,4 @@ This project aims to foster the development of negotiation skills and understand
 - Manning, B. S., Zhu, K., & Horton, J. J. (2024). Automated social science: Language models as scientist and subjects (No. w32381). National Bureau of Economic Research.
 - Diliara Zharikova, Daniel Kornev, Fedor Ignatov, Maxim Talimanchuk, Dmitry Evseev, Ksenya Petukhova, Veronika Smilga, Dmitry Karpov, Yana Shishkina, Dmitry Kosenko, and Mikhail Burtsev. 2023. DeepPavlov Dream: Platform for Building Generative AI Assistants. In Proceedings of the 61st Annual Meeting of the Association for Computational Linguistics (Volume 3: System Demonstrations), pages 599–607, Toronto, Canada. Association for Computational Linguistics.
 - Wu, Q., Bansal, G., Zhang, J., Wu, Y., Zhang, S., Zhu, E., ... & Wang, C. (2023). Autogen: Enabling next-gen llm applications via multi-agent conversation framework.
-
-
-
-## TODO
-
-- **Improve documentation** - Create a How-to install document and document the code of the App, namely the most critical parts regarding 
-- **Unit Tests** - Implement unit tests to ensure no breaking changes are introduced when performing new developments
-- **Refactor backend code** 
-- **Improve frontend**
-- **Implement a student playground** - Allow students to test their agents in the platform
 
