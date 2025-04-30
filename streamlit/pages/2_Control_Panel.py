@@ -428,7 +428,7 @@ if st.session_state['authenticated']:
 
                                 if selected_game:
 
-                                    values = get_text_from_file_without_timestamp_aux(f"Values_{selected_game['created_by']}_{selected_game['game_id']}")
+                                    values = get_text_from_file_without_timestamp_aux(f"Values_{selected_game['created_by']}_{selected_game['game_id']}_")
                                     if values: 
                                         values = values.split('\n')
                                         values = [item.split(',') for item in values if item]
@@ -460,7 +460,7 @@ if st.session_state['authenticated']:
                                     user_id = st.session_state.get('user_id')
 
                                     # Get the Game explanation from Google Drive using the filename
-                                    game_explanation = get_text_from_file_without_timestamp_aux(f"Explanation_{selected_game['created_by']}_{selected_game['game_id']}")
+                                    game_explanation = get_text_from_file_without_timestamp_aux(f"Explanation_{selected_game['created_by']}_{selected_game['game_id']}_")
                                     if game_explanation:
                                         st.write(f"**Game Explanation**: {game_explanation}")
                                     else:
@@ -480,7 +480,7 @@ if st.session_state['authenticated']:
                                 simulation_params_names = ['Model', 'Conversation Starter', 'Starting Message', 'Number of Turns', 'Negotiation Termination Message', 'Negotiation Summary Prompt', 'Summary Termination Message']
                                 
                                 # here we do not save the result in cache on purpose
-                                simulation_params = get_text_from_file_without_timestamp(f'Simulation_{selected_game["created_by"]}_{selected_game["game_id"]}')
+                                simulation_params = get_text_from_file_without_timestamp(f'Simulation_{selected_game["created_by"]}_{selected_game["game_id"]}_')
                                 if simulation_params:
                                     simulation_params = simulation_params.split('\n')                               
                                     name_roles = selected_game['name_roles'].split('#_;:)')
@@ -513,14 +513,14 @@ if st.session_state['authenticated']:
                             deadline_date_stored = game_details["timestamp_submission_deadline"].date()
                             deadline_time_stored = game_details["timestamp_submission_deadline"].time()
 
-                            values_stored = get_text_from_file_without_timestamp(f'Values_{created_by_stored}_{game_id}')
+                            values_stored = get_text_from_file_without_timestamp(f'Values_{created_by_stored}_{game_id}_')
                             if values_stored: 
                                 values_stored = values_stored.split('\n')
                                 values_stored = [item.split(',') for item in values_stored if item]
                                 params_stored = list(map(int, values_stored[0]))
 
                             # Fetch Game explanation from Google Drive
-                            game_explanation_stored = get_text_from_file_without_timestamp(f"Explanation_{created_by_stored}_{game_id}")
+                            game_explanation_stored = get_text_from_file_without_timestamp(f"Explanation_{created_by_stored}_{game_id}_")
                         else:
                             st.error("Game not found.")
 
@@ -673,7 +673,7 @@ if st.session_state['authenticated']:
                         name_roles = selected_game['name_roles'].split('#_;:)')
                         name_roles_1, name_roles_2 = name_roles[0], name_roles[1]
 
-                        values = get_text_from_file_without_timestamp_aux(f'Values_{created_by}_{game_id}')
+                        values = get_text_from_file_without_timestamp_aux(f'Values_{created_by}_{game_id}_')
                         if values:
                             values = values.split('\n')
                             values = [item.split(',') for item in values if item]
@@ -687,7 +687,7 @@ if st.session_state['authenticated']:
                             missing_submissions = ''
                             to_remove = []
                             for i in teams:
-                                prompts = get_text_from_file_without_timestamp_aux(f'Game{game_id}_Class{i[0]}_Group{i[1]}')
+                                prompts = get_text_from_file_without_timestamp_aux(f'Game{game_id}_Class{i[0]}_Group{i[1]}_')
                                 if not prompts: 
                                     to_remove.append(i) 
                                     missing_submissions += f' Class{i[0]}-Group{i[1]},'
@@ -769,7 +769,7 @@ if st.session_state['authenticated']:
 
                                 if submit_button:
                                     if api_key and model:                            
-                                        simulation_params = get_text_from_file_without_timestamp(f'Simulation_{created_by}_{game_id}')
+                                        simulation_params = get_text_from_file_without_timestamp(f'Simulation_{created_by}_{game_id}_')
                                         simulation_params = simulation_params.split('\n')    
                                         simulation_params[3] = int(simulation_params[3])     
                                         
@@ -846,7 +846,7 @@ if st.session_state['authenticated']:
 
                         with st.expander("**Explanation**"):
                             # Get the Game explanation from Google Drive using the filename
-                            game_explanation = get_text_from_file_without_timestamp_aux(f'Explanation_{professor_id}_{game_id}')
+                            game_explanation = get_text_from_file_without_timestamp_aux(f'Explanation_{professor_id}_{game_id}_')
                             if game_explanation:
                                 st.write(f"{game_explanation}")
                             else:
@@ -858,7 +858,7 @@ if st.session_state['authenticated']:
                                 for i in teams: 
                                     class_ = i[0]
                                     group_id = i[1]
-                                    prompts = get_text_from_file_without_timestamp_aux(f'Game{game_id}_Class{class_}_Group{group_id}')
+                                    prompts = get_text_from_file_without_timestamp_aux(f'Game{game_id}_Class{class_}_Group{group_id}_')
 
                                     # Display group header
                                     st.write(f"### Class {class_} - Group {group_id}")

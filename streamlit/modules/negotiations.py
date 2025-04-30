@@ -83,7 +83,7 @@ def create_agents(game_id, order, teams, values, name_roles, config_list, negoti
 
     for team in teams:
 
-        submission = get_text_from_file_without_timestamp(f'Game{game_id}_Class{team[0]}_Group{team[1]}') 
+        submission = get_text_from_file_without_timestamp(f'Game{game_id}_Class{team[0]}_Group{team[1]}_') 
 
         value1 = int(next((value for value in values if value[0] == team[0] and int(value[1]) == team[1]), None)[2])
         value2 = int(next((value for value in values if value[0] == team[0] and int(value[1]) == team[1]), None)[3])
