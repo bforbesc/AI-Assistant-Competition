@@ -101,7 +101,7 @@ def get_game_by_id(game_id):
                 query = """
                     SELECT available, created_by, game_name, number_of_rounds, 
                            name_roles, game_academic_year, game_class, password, timestamp_game_creation, 
-                           timestamp_submission_deadline 
+                           timestamp_submission_deadline, explanation
                     FROM game
                     WHERE game_id = %s;
                 """
@@ -121,7 +121,8 @@ def get_game_by_id(game_id):
                         "game_class": result[6],
                         "password": result[7],
                         "timestamp_game_creation": result[8],
-                        "timestamp_submission_deadline": result[9]
+                        "timestamp_submission_deadline": result[9],
+                        "explanation": result[10]
                     }
                 return False
             
@@ -145,7 +146,7 @@ def fetch_games_data(academic_year=None, get_academic_years=False):
                 # Query to fetch games for a specific academic year
                 query2 = """
                     SELECT game_id, game_name, game_class, available, created_by, number_of_rounds, 
-                           name_roles, game_academic_year, password, timestamp_game_creation, timestamp_submission_deadline
+                           name_roles, game_academic_year, password, timestamp_game_creation, timestamp_submission_deadline, explanation
                     FROM game
                     WHERE game_academic_year = %(param1)s
                     ORDER BY game_id DESC;
@@ -167,7 +168,8 @@ def fetch_games_data(academic_year=None, get_academic_years=False):
                         "game_academic_year": row[7],
                         "password": row[8],
                         "timestamp_game_creation": row[9],
-                        "timestamp_submission_deadline": row[10]
+                        "timestamp_submission_deadline": row[10],
+                        "explanation": row[11] if len(row) > 11 else None
                     }
                     for row in games_data
                 ]
@@ -206,7 +208,8 @@ def fetch_current_games_data_by_user_id(sign, user_id):
                             "game_class": row[7],
                             "password": row[8],
                             "timestamp_game_creation": row[9],
-                            "timestamp_submission_deadline": row[10]
+                            "timestamp_submission_deadline": row[10],
+                            "explanation": row[11] if len(row) > 11 else None
                         }
                         games.append(game)
             
@@ -234,7 +237,7 @@ def get_next_game_id():
         return False
     
 # Function to update game details in the database
-def update_game_in_db(game_id, created_by, game_name, number_of_rounds, name_roles, game_academic_year, game_class, password, timestamp_game_creation, submission_deadline):
+def update_game_in_db(game_id, created_by, game_name, number_of_rounds, name_roles, game_academic_year, game_class, password, timestamp_game_creation, submission_deadline, explanation):
     try:
         with psycopg2.connect(DB_CONNECTION_STRING) as conn:
             with conn.cursor() as cur:
@@ -243,8 +246,8 @@ def update_game_in_db(game_id, created_by, game_name, number_of_rounds, name_rol
                     UPDATE game
                     SET created_by = %(param1)s, game_name = %(param2)s, number_of_rounds = %(param3)s, name_roles = %(param4)s,
                         game_academic_year = %(param5)s, game_class = %(param6)s, password = %(param7)s, timestamp_game_creation = %(param8)s, 
-                        timestamp_submission_deadline = %(param9)s
-                    WHERE game_id = %(param10)s;
+                        timestamp_submission_deadline = %(param9)s, explanation = %(param10)s
+                    WHERE game_id = %(param11)s;
                 """
 
                 cur.execute(query1, {
@@ -257,7 +260,8 @@ def update_game_in_db(game_id, created_by, game_name, number_of_rounds, name_rol
                     'param7': password, 
                     'param8': timestamp_game_creation,
                     'param9': submission_deadline,
-                    'param10': game_id
+                    'param10': explanation,
+                    'param11': game_id
                 })
 
                 query2 = """
@@ -304,14 +308,14 @@ def update_access_to_chats(access, game_id):
         return False
 
 # Function to store game details in the database
-def store_game_in_db(game_id, available, created_by, game_name, number_of_rounds, name_roles, game_academic_year, game_class, password, timestamp_game_creation, submission_deadline):
+def store_game_in_db(game_id, available, created_by, game_name, number_of_rounds, name_roles, game_academic_year, game_class, password, timestamp_game_creation, submission_deadline, explanation):
     try:
         with psycopg2.connect(DB_CONNECTION_STRING) as conn:
             with conn.cursor() as cur:
 
                 query = """
-                    INSERT INTO game (game_id, available, created_by, game_name, number_of_rounds, name_roles, game_academic_year, game_class, password, timestamp_game_creation, timestamp_submission_deadline)
-                    VALUES (%(param1)s, %(param2)s, %(param3)s, %(param4)s, %(param5)s, %(param6)s, %(param7)s, %(param8)s, %(param9)s, %(param10)s, %(param11)s);
+                    INSERT INTO game (game_id, available, created_by, game_name, number_of_rounds, name_roles, game_academic_year, game_class, password, timestamp_game_creation, timestamp_submission_deadline, explanation)
+                    VALUES (%(param1)s, %(param2)s, %(param3)s, %(param4)s, %(param5)s, %(param6)s, %(param7)s, %(param8)s, %(param9)s, %(param10)s, %(param11)s, %(param12)s);
                 """
 
                 cur.execute(query, {
@@ -325,7 +329,8 @@ def store_game_in_db(game_id, available, created_by, game_name, number_of_rounds
                     'param8': game_class,
                     'param9': password, 
                     'param10': timestamp_game_creation,
-                    'param11': submission_deadline
+                    'param11': submission_deadline,
+                    'param12': explanation
                 })
 
                 return True

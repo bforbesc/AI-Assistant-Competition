@@ -355,7 +355,7 @@ if st.session_state['authenticated']:
 
                                 # Store other details in the database
                                 store_game_in_db(next_game_id, 0, user_id, game_name, -1, name_roles, game_academic_year,
-                                                   game_class, password, timestamp_game_creation, submission_deadline)
+                                                   game_class, password, timestamp_game_creation, submission_deadline, game_explanation)
                                 
                                 # Populate the 'plays' table with eligible students
                                 if not populate_plays_table(next_game_id, game_academic_year, game_class):
@@ -459,10 +459,9 @@ if st.session_state['authenticated']:
                                     # Retrieve user ID from session state
                                     user_id = st.session_state.get('user_id')
 
-                                    # Get the Game explanation from Google Drive using the filename
-                                    game_explanation = get_text_from_file_without_timestamp_aux(f"Explanation_{selected_game['created_by']}_{selected_game['game_id']}")
-                                    if game_explanation:
-                                        st.write(f"**Game Explanation**: {game_explanation}")
+                                    # Get the game explanation from the database
+                                    if "explanation" in selected_game and selected_game["explanation"]:
+                                        st.write(f"**Game Explanation**: {selected_game['explanation']}")
                                     else:
                                         st.write("No explanation found for this game.")
                                     
@@ -519,8 +518,8 @@ if st.session_state['authenticated']:
                                 values_stored = [item.split(',') for item in values_stored if item]
                                 params_stored = list(map(int, values_stored[0]))
 
-                            # Fetch Game explanation from Google Drive
-                            game_explanation_stored = get_text_from_file_without_timestamp(f"Explanation_{created_by_stored}_{game_id}")
+                            # Get explanation from game_details (already fetched from database)
+                            game_explanation_stored = game_details.get("explanation", "")
                         else:
                             st.error("Game not found.")
 
@@ -586,9 +585,8 @@ if st.session_state['authenticated']:
                             if  game_name_edit and game_explanation_edit and name_roles_1_edit and name_roles_2_edit and \
                                 selected_combination_edit and password_edit and deadline_date_edit and deadline_time_edit:
                                 try:
-                                    # Overwrite file in Google Drive
-                                    overwrite_text_file(game_explanation_edit, f"Explanation_{created_by_stored}_{game_id}_{timestamp_game_creation_stored}")
- 
+                                    # No need to update in Google Drive, it will be updated in the database
+
                                     # Combine the date and time into a single datetime object
                                     submission_deadline = datetime.combine(deadline_date_edit, deadline_time_edit)
  
@@ -597,7 +595,7 @@ if st.session_state['authenticated']:
 
                                     # Update other details in the database
                                     update_game_in_db(game_id, created_by_stored, game_name_edit, -1, name_roles_edit, game_academic_year_edit,
-                                                        game_class_edit, password_edit, timestamp_game_creation_stored, submission_deadline)
+                                                        game_class_edit, password_edit, timestamp_game_creation_stored, submission_deadline, game_explanation_edit)
                                     
                                     # Populate the 'plays' table with eligible students (after update)
                                     if not populate_plays_table(game_id, game_academic_year_edit, game_class_edit):
@@ -845,10 +843,9 @@ if st.session_state['authenticated']:
                         st.header(f"{selected_game_name}")
 
                         with st.expander("**Explanation**"):
-                            # Get the Game explanation from Google Drive using the filename
-                            game_explanation = get_text_from_file_without_timestamp_aux(f'Explanation_{professor_id}_{game_id}')
-                            if game_explanation:
-                                st.write(f"{game_explanation}")
+                            # Get the game explanation from the database
+                            if "explanation" in selected_game and selected_game["explanation"]:
+                                st.write(f"{selected_game['explanation']}")
                             else:
                                 st.write("No explanation found for this game.")
 
