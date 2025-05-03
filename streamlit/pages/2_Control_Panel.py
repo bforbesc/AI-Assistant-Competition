@@ -5,7 +5,7 @@ from datetime import datetime, timedelta
 import random
 import re
 from st_aggrid import GridOptionsBuilder, AgGrid, GridUpdateMode, ColumnsAutoSizeMode
-from modules.database_handler import populate_plays_table, insert_student_data, remove_student, store_game_in_db, update_game_in_db, update_num_rounds_game, update_access_to_chats, delete_from_round
+from modules.database_handler import populate_plays_table, insert_student_data, remove_student, store_game_in_db, update_game_in_db, update_num_rounds_game, update_access_to_chats, delete_from_round, store_group_values, store_game_parameters, get_game_parameters
 from modules.database_handler import get_academic_year_class_combinations, get_game_by_id, fetch_games_data, get_next_game_id, get_students_from_db, get_group_ids_from_game_id, get_round_data, get_error_matchups, fetch_and_compute_scores_for_year, fetch_and_compute_scores_for_year_game
 from modules.drive_file_manager import overwrite_text_file, get_text_from_file, upload_text_as_file, get_text_from_file_without_timestamp, find_and_delete 
 from modules.negotiations import create_chats, create_all_error_chats
@@ -363,15 +363,22 @@ if st.session_state['authenticated']:
                                     time.sleep(1)
                                     error.empty()
                                 
+                                # Store game parameters and generate/store group values in the database
                                 different_groups_classes = get_group_ids_from_game_id(next_game_id)
-                                text = f'{param1},{param2},{param3},{param4}\n'
-                                for i in different_groups_classes:
-                                    buy_value = int(random.uniform(param1, param2))
-                                    sell_value = int(random.uniform(param3, param4))
-                                    text += f'{i[0]},{i[1]},{buy_value},{sell_value}\n'
-
-                                upload_text_as_file(text, f"Values_{user_id}_{next_game_id}_{timestamp_game_creation}")
-
+                                # Store parameters (min/max bounds)
+                                if not store_game_parameters(next_game_id, param1, param2, param3, param4):
+                                    st.error("Failed to store game parameters.")
+                                    # Consider adding error handling here if needed
+                                
+                                # Generate and store values for each group
+                                if different_groups_classes: # Check if list is not empty
+                                    for i in different_groups_classes:
+                                        buy_value = int(random.uniform(param1, param2))
+                                        sell_value = int(random.uniform(param3, param4))
+                                        if not store_group_values(next_game_id, i[0], i[1], buy_value, sell_value):
+                                            st.error(f"Failed to store values for group {i[0]}-{i[1]}.")
+                                            # Consider adding error handling here if needed
+                                
                                 success = st.success("Game created successfully!")
                                 time.sleep(1)
                                 success.empty()
@@ -427,12 +434,19 @@ if st.session_state['authenticated']:
                             if radio == 'Details':
 
                                 if selected_game:
-
-                                    values = get_text_from_file_without_timestamp_aux(f"Values_{selected_game['created_by']}_{selected_game['game_id']}")
-                                    if values: 
-                                        values = values.split('\n')
-                                        values = [item.split(',') for item in values if item]
-                                        params = list(map(int, values[0]))
+                                    # Get parameters from the database instead of the file
+                                    params_data = get_game_parameters(selected_game['game_id'])
+                                    if params_data:
+                                        # Reconstruct the params list in the same order as before
+                                        params = [
+                                            params_data["min_minimizer"],
+                                            params_data["max_minimizer"],
+                                            params_data["min_maximizer"],
+                                            params_data["max_maximizer"]
+                                        ]
+                                    else:
+                                        params = [0, 0, 0, 0] # Default if not found
+                                        st.warning("Game parameters not found.")
 
                                     st.subheader(f"Details of {selected_game['game_name']}")
                                     st.write(f"**Game ID**: {selected_game['game_id']}")
@@ -512,11 +526,19 @@ if st.session_state['authenticated']:
                             deadline_date_stored = game_details["timestamp_submission_deadline"].date()
                             deadline_time_stored = game_details["timestamp_submission_deadline"].time()
 
-                            values_stored = get_text_from_file_without_timestamp(f'Values_{created_by_stored}_{game_id}')
-                            if values_stored: 
-                                values_stored = values_stored.split('\n')
-                                values_stored = [item.split(',') for item in values_stored if item]
-                                params_stored = list(map(int, values_stored[0]))
+                            # Get parameters from the database instead of the file
+                            params_data = get_game_parameters(game_id)
+                            if params_data:
+                                # Reconstruct the params list in the same order as before
+                                params_stored = [
+                                    params_data["min_minimizer"],
+                                    params_data["max_minimizer"],
+                                    params_data["min_maximizer"],
+                                    params_data["max_maximizer"]
+                                ]
+                            else:
+                                params_stored = [0, 0, 0, 0] # Default if not found
+                                st.warning("Game parameters not found.")
 
                             # Get explanation from game_details (already fetched from database)
                             game_explanation_stored = game_details.get("explanation", "")
@@ -601,27 +623,27 @@ if st.session_state['authenticated']:
                                     if not populate_plays_table(game_id, game_academic_year_edit, game_class_edit):
                                         st.error("An error occurred while assigning students to the game.")
 
-                                    # Handling Values.txt
+                                    # Handling Group Values in Database
                                     different_groups_classes = get_group_ids_from_game_id(game_id)
-                                    if game_class_stored == game_class_edit and str(game_academic_year_stored) == game_academic_year_edit:
-                                        if params_stored[0]==param1_edit and params_stored[1]==param2_edit and params_stored[2]==param3_edit and params_stored[3]==param4_edit:
-                                            pass
-                                        else:
-                                            text = f'{param1_edit},{param2_edit},{param3_edit},{param4_edit}\n'
+                                    # Always update parameters first
+                                    if not store_game_parameters(game_id, param1_edit, param2_edit, param3_edit, param4_edit):
+                                        st.error("Failed to update game parameters.")
+                                        # Handle error appropriately
+
+                                    # Check if class/year or parameters changed, regenerate values if necessary
+                                    if (game_class_stored != game_class_edit or 
+                                        str(game_academic_year_stored) != game_academic_year_edit or
+                                        params_stored[0] != param1_edit or params_stored[1] != param2_edit or 
+                                        params_stored[2] != param3_edit or params_stored[3] != param4_edit):
+                                        
+                                        if different_groups_classes: # Check if list is not empty
                                             for i in different_groups_classes:
                                                 buy_value = int(random.uniform(param1_edit, param2_edit))
                                                 sell_value = int(random.uniform(param3_edit, param4_edit))
-                                                text += f'{i[0]},{i[1]},{buy_value},{sell_value}\n'
-                                            overwrite_text_file(text, f'Values_{created_by_stored}_{game_id}_{timestamp_game_creation_stored}')
-                                            
-                                    else: 
-                                        text = f'{param1_edit},{param2_edit},{param3_edit},{param4_edit}\n'
-                                        for i in different_groups_classes:
-                                            buy_value = int(random.uniform(param1_edit, param2_edit))
-                                            sell_value = int(random.uniform(param3_edit, param4_edit))
-                                            text += f'{i[0]},{i[1]},{buy_value},{sell_value}\n'
-                                        overwrite_text_file(text, f'Values_{created_by_stored}_{game_id}_{timestamp_game_creation_stored}')
-
+                                                if not store_group_values(game_id, i[0], i[1], buy_value, sell_value):
+                                                     st.error(f"Failed to update values for group {i[0]}-{i[1]}.")
+                                                     # Handle error appropriately
+                                    
                                     st.success("Game changed successfully!")
                                     
                                 except Exception:

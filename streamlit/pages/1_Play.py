@@ -2,8 +2,13 @@ import streamlit as st
 import re
 import time 
 from datetime import datetime as dt
-from modules.database_handler import fetch_current_games_data_by_user_id, get_group_id_from_user_id, get_class_from_user_id, get_round_data_by_class_group_id
-from modules.database_handler import get_academic_years_of_students, get_classes_of_students, get_groups_of_students, get_user_id_of_student
+from modules.database_handler import (
+    fetch_current_games_data_by_user_id, get_group_id_from_user_id, 
+    get_class_from_user_id, get_round_data_by_class_group_id,
+    get_academic_years_of_students, get_classes_of_students, 
+    get_groups_of_students, get_user_id_of_student,
+    get_group_values 
+)
 from modules.drive_file_manager import get_text_from_file, overwrite_text_file, get_text_from_file_without_timestamp
 
 # ------------------------ SET THE DEFAULT SESSION STATE FOR THE PLAY SECTION ---------------------------- #
@@ -93,19 +98,12 @@ if st.session_state['authenticated']:
                 
             with st.expander("**Private Information**"):
     
-                # Get the Private Information from Google Drive using the filename
-                private_information = get_text_from_file_aux(f'Values_{professor_id}_{game_id}_{timestamp_game_creation}')
-                if private_information:
-                    private_information = private_information.split('\n')
-                    private_information = [item.split(',') for item in private_information if item]
-                    for i in private_information: 
-                        if i[0] == CLASS and int(i[1]) == GROUP_ID:
-                            values = i
-                            break
+                # Get the Private Information from the database instead
+                group_values = get_group_values(game_id, CLASS, GROUP_ID)
+                if group_values:
                     st.write(f"The following information is private and group-specific. Do not share it with others:")
-                    st.write(f"When playing as **{name_roles_1}**, your reservation value is: **{values[2]}**;")
-                    st.write(f"When playing as **{name_roles_2}**, your reservation value is: **{values[3]}**.")
-
+                    st.write(f"When playing as **{name_roles_1}**, your reservation value is: **{group_values['minimizer_value']}**;")
+                    st.write(f"When playing as **{name_roles_2}**, your reservation value is: **{group_values['maximizer_value']}**.")
                 else:
                     st.write("No private information found for this game.")
 
@@ -174,17 +172,12 @@ if st.session_state['authenticated']:
                 else: st.write("No explanation found for this game. Please contact your Professor.")
 
             with st.expander("**Private Information**"):
-                private_information = get_text_from_file_without_timestamp_aux(f'Values_{professor_id}_{game_id}')
-                if private_information:
-                    private_information = private_information.split('\n')
-                    private_information = [item.split(',') for item in private_information if item]
-                    for i in private_information: 
-                        if i[0] == CLASS and int(i[1]) == GROUP_ID:
-                            values = i
-                            break
+                # Get the Private Information from the database instead
+                group_values = get_group_values(game_id, CLASS, GROUP_ID)
+                if group_values:
                     st.write(f"The following information is private and group-specific. Do not share it with others:")
-                    st.write(f"When playing as **{name_roles_1}**, your valuation is: **{values[2]}**;")
-                    st.write(f"When playing as **{name_roles_2}**, your valuation is: **{values[3]}**.")
+                    st.write(f"When playing as **{name_roles_1}**, your valuation is: **{group_values['minimizer_value']}**;")
+                    st.write(f"When playing as **{name_roles_2}**, your valuation is: **{group_values['maximizer_value']}**.")
                 else:
                     st.write("No private information found for this game. Please contact your Professor.")
 

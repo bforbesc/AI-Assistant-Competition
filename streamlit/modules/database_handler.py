@@ -1103,3 +1103,152 @@ def fetch_and_compute_scores_for_year_game(game_id):
 
     except Exception:
         return False
+
+# Function to store group values in the database
+def store_group_values(game_id, class_, group_id, minimizer_value, maximizer_value):
+    try:
+        with psycopg2.connect(DB_CONNECTION_STRING) as conn:
+            with conn.cursor() as cur:
+                # This query inserts a new row. 
+                # If a row with the same game_id, class, and group_id already exists (ON CONFLICT),
+                # it updates the existing row instead (DO UPDATE SET).
+                query = """
+                    INSERT INTO group_values (game_id, class, group_id, minimizer_value, maximizer_value)
+                    VALUES (%(param1)s, %(param2)s, %(param3)s, %(param4)s, %(param5)s)
+                    ON CONFLICT (game_id, class, group_id) 
+                    DO UPDATE SET minimizer_value = %(param4)s, maximizer_value = %(param5)s;
+                """
+                
+                cur.execute(query, {
+                    'param1': game_id,
+                    'param2': class_,
+                    'param3': group_id,
+                    'param4': minimizer_value,
+                    'param5': maximizer_value
+                })
+                
+                return True
+    except Exception:
+        return False
+
+# Function to store game parameters (bounds)
+def store_game_parameters(game_id, min_minimizer, max_minimizer, min_maximizer, max_maximizer):
+    try:
+        with psycopg2.connect(DB_CONNECTION_STRING) as conn:
+            with conn.cursor() as cur:
+                # Store min values in one row using 'params' as class and 0 as group_id
+                query = """
+                    INSERT INTO group_values (game_id, class, group_id, minimizer_value, maximizer_value)
+                    VALUES (%(param1)s, 'params', 0, %(param2)s, %(param3)s)
+                    ON CONFLICT (game_id, class, group_id) 
+                    DO UPDATE SET minimizer_value = %(param2)s, maximizer_value = %(param3)s;
+                """
+                
+                cur.execute(query, {
+                    'param1': game_id,
+                    'param2': min_minimizer,
+                    'param3': min_maximizer
+                })
+                
+                # Store max values in another row using 'params' as class and 1 as group_id
+                query = """
+                    INSERT INTO group_values (game_id, class, group_id, minimizer_value, maximizer_value)
+                    VALUES (%(param1)s, 'params', 1, %(param2)s, %(param3)s)
+                    ON CONFLICT (game_id, class, group_id) 
+                    DO UPDATE SET minimizer_value = %(param2)s, maximizer_value = %(param3)s;
+                """
+                
+                cur.execute(query, {
+                    'param1': game_id,
+                    'param2': max_minimizer,
+                    'param3': max_maximizer
+                })
+                
+                return True
+    except Exception as e:
+        print(f"Error in store_game_parameters: {e}")
+        return False
+
+# Function to get group values from database
+def get_group_values(game_id, class_, group_id):
+    try:
+        with psycopg2.connect(DB_CONNECTION_STRING) as conn:
+            with conn.cursor() as cur:
+                query = """
+                    SELECT minimizer_value, maximizer_value
+                    FROM group_values
+                    WHERE game_id = %(param1)s AND class = %(param2)s AND group_id = %(param3)s;
+                """
+                
+                cur.execute(query, {
+                    'param1': game_id,
+                    'param2': class_,
+                    'param3': group_id
+                })
+                
+                result = cur.fetchone()
+                if result:
+                    return {
+                        "minimizer_value": result[0],
+                        "maximizer_value": result[1]
+                    }
+                return None
+    except Exception:
+        return None
+
+# Function to get game parameters (bounds)
+def get_game_parameters(game_id):
+    try:
+        with psycopg2.connect(DB_CONNECTION_STRING) as conn:
+            with conn.cursor() as cur:
+                # Retrieve the two rows stored for parameters, ordered by group_id (0 then 1)
+                query = """
+                    SELECT minimizer_value, maximizer_value
+                    FROM group_values
+                    WHERE game_id = %(param1)s AND class = 'params'
+                    ORDER BY group_id;
+                """
+                
+                cur.execute(query, {'param1': game_id})
+                
+                results = cur.fetchall()
+                # Expecting two rows: one for min values (group_id=0), one for max values (group_id=1)
+                if len(results) == 2:
+                    return {
+                        "min_minimizer": results[0][0], # Min minimizer from row 0
+                        "max_minimizer": results[1][0], # Max minimizer from row 1
+                        "min_maximizer": results[0][1], # Min maximizer from row 0
+                        "max_maximizer": results[1][1]  # Max maximizer from row 1
+                    }
+                return None
+    except Exception as e:
+        print(f"Error in get_game_parameters: {e}")
+        return None
+
+# Function to get all group values for a game (excluding parameters)
+def get_all_group_values(game_id):
+    try:
+        with psycopg2.connect(DB_CONNECTION_STRING) as conn:
+            with conn.cursor() as cur:
+                query = """
+                    SELECT class, group_id, minimizer_value, maximizer_value
+                    FROM group_values
+                    WHERE game_id = %(param1)s AND class != 'params'
+                    ORDER BY class, group_id;
+                """
+                
+                cur.execute(query, {'param1': game_id})
+                
+                results = cur.fetchall()
+                values = []
+                for row in results:
+                    values.append({
+                        "class": row[0],
+                        "group_id": row[1],
+                        "minimizer_value": row[2],
+                        "maximizer_value": row[3]
+                    })
+                return values
+    except Exception as e:
+        print(f"Error in get_all_group_values: {e}")
+        return []
