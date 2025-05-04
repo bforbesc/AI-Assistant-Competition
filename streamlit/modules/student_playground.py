@@ -11,13 +11,12 @@ This module adds a playground feature to the platform, allowing students to:
 import streamlit as st
 import re
 import time
-import autogen
+import ag2 as autogen
 import random
 from datetime import datetime
 import hashlib
 from modules.database_handler import get_group_id_from_user_id, get_class_from_user_id
 from modules.drive_file_manager import get_text_from_file_without_timestamp, overwrite_text_file
-
 
 # Function for cleaning dialogue messages to remove agent name prefixes
 def clean_agent_message(agent_name_1, agent_name_2, message):
