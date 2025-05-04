@@ -148,3 +148,5 @@ scripts/similarity/config.yml
 
 # Secrets file
 .streamlit/secrets.toml
+/streamlit/.streamlit/secrets.toml
+/streamlit/.streamlit/secrets_prof.toml
