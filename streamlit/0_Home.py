@@ -181,6 +181,32 @@ else:
                     - **Profile**: Manage personal information.
                     - **About**: Learn more about the app's authors and contributors.
                     """)
+        # Add Game Type Selection for Professors
+        st.subheader("Game Configuration")
+
+        # Define available game types
+        game_types = ["Zero-Sum", "Prisoner's Dilemma"]
+
+        # Create a drop-down menu for selecting the game type
+        selected_game_type = st.selectbox("Select the type of game:", game_types)
+
+        # Display the selected game type
+        st.write(f"Selected Game Type: {selected_game_type}")
+
+        # Store the selected game type in session state
+        st.session_state["game_type"] = selected_game_type
+
+        # Add logic to handle the selected game type
+        if selected_game_type == "Zero-Sum":
+            from modules.game_modes import zero_sum_game
+
+            zero_sum_game()
+            st.write("You have selected a Zero-Sum game.")
+        elif selected_game_type == "Prisoner's Dilemma":
+            from modules.game_modes import prisoners_dilemma_game
+
+            prisoners_dilemma_game()
+            st.write("You have selected a Prisoner's Dilemma game.")
     else:
         st.markdown("""
                     Here's a brief overview of the content of each section of the app:
