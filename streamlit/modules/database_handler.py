@@ -101,7 +101,7 @@ def get_game_by_id(game_id):
                 query = """
                     SELECT available, created_by, game_name, number_of_rounds, 
                            name_roles, game_academic_year, game_class, password, timestamp_game_creation, 
-                           timestamp_submission_deadline 
+                           timestamp_submission_deadline, explanation
                     FROM game
                     WHERE game_id = %s;
                 """
@@ -121,7 +121,8 @@ def get_game_by_id(game_id):
                         "game_class": result[6],
                         "password": result[7],
                         "timestamp_game_creation": result[8],
-                        "timestamp_submission_deadline": result[9]
+                        "timestamp_submission_deadline": result[9],
+                        "explanation": result[10]
                     }
                 return False
             
@@ -145,7 +146,7 @@ def fetch_games_data(academic_year=None, get_academic_years=False):
                 # Query to fetch games for a specific academic year
                 query2 = """
                     SELECT game_id, game_name, game_class, available, created_by, number_of_rounds, 
-                           name_roles, game_academic_year, password, timestamp_game_creation, timestamp_submission_deadline
+                           name_roles, game_academic_year, password, timestamp_game_creation, timestamp_submission_deadline, explanation
                     FROM game
                     WHERE game_academic_year = %(param1)s
                     ORDER BY game_id DESC;
@@ -167,7 +168,8 @@ def fetch_games_data(academic_year=None, get_academic_years=False):
                         "game_academic_year": row[7],
                         "password": row[8],
                         "timestamp_game_creation": row[9],
-                        "timestamp_submission_deadline": row[10]
+                        "timestamp_submission_deadline": row[10],
+                        "explanation": row[11] if len(row) > 11 else None
                     }
                     for row in games_data
                 ]
@@ -206,7 +208,8 @@ def fetch_current_games_data_by_user_id(sign, user_id):
                             "game_class": row[7],
                             "password": row[8],
                             "timestamp_game_creation": row[9],
-                            "timestamp_submission_deadline": row[10]
+                            "timestamp_submission_deadline": row[10],
+                            "explanation": row[11] if len(row) > 11 else None
                         }
                         games.append(game)
             
@@ -234,7 +237,7 @@ def get_next_game_id():
         return False
     
 # Function to update game details in the database
-def update_game_in_db(game_id, created_by, game_name, number_of_rounds, name_roles, game_academic_year, game_class, password, timestamp_game_creation, submission_deadline):
+def update_game_in_db(game_id, created_by, game_name, number_of_rounds, name_roles, game_academic_year, game_class, password, timestamp_game_creation, submission_deadline, explanation):
     try:
         with psycopg2.connect(DB_CONNECTION_STRING) as conn:
             with conn.cursor() as cur:
@@ -243,8 +246,8 @@ def update_game_in_db(game_id, created_by, game_name, number_of_rounds, name_rol
                     UPDATE game
                     SET created_by = %(param1)s, game_name = %(param2)s, number_of_rounds = %(param3)s, name_roles = %(param4)s,
                         game_academic_year = %(param5)s, game_class = %(param6)s, password = %(param7)s, timestamp_game_creation = %(param8)s, 
-                        timestamp_submission_deadline = %(param9)s
-                    WHERE game_id = %(param10)s;
+                        timestamp_submission_deadline = %(param9)s, explanation = %(param10)s
+                    WHERE game_id = %(param11)s;
                 """
 
                 cur.execute(query1, {
@@ -257,7 +260,8 @@ def update_game_in_db(game_id, created_by, game_name, number_of_rounds, name_rol
                     'param7': password, 
                     'param8': timestamp_game_creation,
                     'param9': submission_deadline,
-                    'param10': game_id
+                    'param10': explanation,
+                    'param11': game_id
                 })
 
                 query2 = """
@@ -304,14 +308,14 @@ def update_access_to_chats(access, game_id):
         return False
 
 # Function to store game details in the database
-def store_game_in_db(game_id, available, created_by, game_name, number_of_rounds, name_roles, game_academic_year, game_class, password, timestamp_game_creation, submission_deadline):
+def store_game_in_db(game_id, available, created_by, game_name, number_of_rounds, name_roles, game_academic_year, game_class, password, timestamp_game_creation, submission_deadline, explanation):
     try:
         with psycopg2.connect(DB_CONNECTION_STRING) as conn:
             with conn.cursor() as cur:
 
                 query = """
-                    INSERT INTO game (game_id, available, created_by, game_name, number_of_rounds, name_roles, game_academic_year, game_class, password, timestamp_game_creation, timestamp_submission_deadline)
-                    VALUES (%(param1)s, %(param2)s, %(param3)s, %(param4)s, %(param5)s, %(param6)s, %(param7)s, %(param8)s, %(param9)s, %(param10)s, %(param11)s);
+                    INSERT INTO game (game_id, available, created_by, game_name, number_of_rounds, name_roles, game_academic_year, game_class, password, timestamp_game_creation, timestamp_submission_deadline, explanation)
+                    VALUES (%(param1)s, %(param2)s, %(param3)s, %(param4)s, %(param5)s, %(param6)s, %(param7)s, %(param8)s, %(param9)s, %(param10)s, %(param11)s, %(param12)s);
                 """
 
                 cur.execute(query, {
@@ -325,7 +329,8 @@ def store_game_in_db(game_id, available, created_by, game_name, number_of_rounds
                     'param8': game_class,
                     'param9': password, 
                     'param10': timestamp_game_creation,
-                    'param11': submission_deadline
+                    'param11': submission_deadline,
+                    'param12': explanation
                 })
 
                 return True
@@ -1098,3 +1103,152 @@ def fetch_and_compute_scores_for_year_game(game_id):
 
     except Exception:
         return False
+
+# Function to store group values in the database
+def store_group_values(game_id, class_, group_id, minimizer_value, maximizer_value):
+    try:
+        with psycopg2.connect(DB_CONNECTION_STRING) as conn:
+            with conn.cursor() as cur:
+                # This query inserts a new row. 
+                # If a row with the same game_id, class, and group_id already exists (ON CONFLICT),
+                # it updates the existing row instead (DO UPDATE SET).
+                query = """
+                    INSERT INTO group_values (game_id, class, group_id, minimizer_value, maximizer_value)
+                    VALUES (%(param1)s, %(param2)s, %(param3)s, %(param4)s, %(param5)s)
+                    ON CONFLICT (game_id, class, group_id) 
+                    DO UPDATE SET minimizer_value = %(param4)s, maximizer_value = %(param5)s;
+                """
+                
+                cur.execute(query, {
+                    'param1': game_id,
+                    'param2': class_,
+                    'param3': group_id,
+                    'param4': minimizer_value,
+                    'param5': maximizer_value
+                })
+                
+                return True
+    except Exception:
+        return False
+
+# Function to store game parameters (bounds)
+def store_game_parameters(game_id, min_minimizer, max_minimizer, min_maximizer, max_maximizer):
+    try:
+        with psycopg2.connect(DB_CONNECTION_STRING) as conn:
+            with conn.cursor() as cur:
+                # Store min values in one row using 'params' as class and 0 as group_id
+                query = """
+                    INSERT INTO group_values (game_id, class, group_id, minimizer_value, maximizer_value)
+                    VALUES (%(param1)s, 'params', 0, %(param2)s, %(param3)s)
+                    ON CONFLICT (game_id, class, group_id) 
+                    DO UPDATE SET minimizer_value = %(param2)s, maximizer_value = %(param3)s;
+                """
+                
+                cur.execute(query, {
+                    'param1': game_id,
+                    'param2': min_minimizer,
+                    'param3': min_maximizer
+                })
+                
+                # Store max values in another row using 'params' as class and 1 as group_id
+                query = """
+                    INSERT INTO group_values (game_id, class, group_id, minimizer_value, maximizer_value)
+                    VALUES (%(param1)s, 'params', 1, %(param2)s, %(param3)s)
+                    ON CONFLICT (game_id, class, group_id) 
+                    DO UPDATE SET minimizer_value = %(param2)s, maximizer_value = %(param3)s;
+                """
+                
+                cur.execute(query, {
+                    'param1': game_id,
+                    'param2': max_minimizer,
+                    'param3': max_maximizer
+                })
+                
+                return True
+    except Exception as e:
+        print(f"Error in store_game_parameters: {e}")
+        return False
+
+# Function to get group values from database
+def get_group_values(game_id, class_, group_id):
+    try:
+        with psycopg2.connect(DB_CONNECTION_STRING) as conn:
+            with conn.cursor() as cur:
+                query = """
+                    SELECT minimizer_value, maximizer_value
+                    FROM group_values
+                    WHERE game_id = %(param1)s AND class = %(param2)s AND group_id = %(param3)s;
+                """
+                
+                cur.execute(query, {
+                    'param1': game_id,
+                    'param2': class_,
+                    'param3': group_id
+                })
+                
+                result = cur.fetchone()
+                if result:
+                    return {
+                        "minimizer_value": result[0],
+                        "maximizer_value": result[1]
+                    }
+                return None
+    except Exception:
+        return None
+
+# Function to get game parameters (bounds)
+def get_game_parameters(game_id):
+    try:
+        with psycopg2.connect(DB_CONNECTION_STRING) as conn:
+            with conn.cursor() as cur:
+                # Retrieve the two rows stored for parameters, ordered by group_id (0 then 1)
+                query = """
+                    SELECT minimizer_value, maximizer_value
+                    FROM group_values
+                    WHERE game_id = %(param1)s AND class = 'params'
+                    ORDER BY group_id;
+                """
+                
+                cur.execute(query, {'param1': game_id})
+                
+                results = cur.fetchall()
+                # Expecting two rows: one for min values (group_id=0), one for max values (group_id=1)
+                if len(results) == 2:
+                    return {
+                        "min_minimizer": results[0][0], # Min minimizer from row 0
+                        "max_minimizer": results[1][0], # Max minimizer from row 1
+                        "min_maximizer": results[0][1], # Min maximizer from row 0
+                        "max_maximizer": results[1][1]  # Max maximizer from row 1
+                    }
+                return None
+    except Exception as e:
+        print(f"Error in get_game_parameters: {e}")
+        return None
+
+# Function to get all group values for a game (excluding parameters)
+def get_all_group_values(game_id):
+    try:
+        with psycopg2.connect(DB_CONNECTION_STRING) as conn:
+            with conn.cursor() as cur:
+                query = """
+                    SELECT class, group_id, minimizer_value, maximizer_value
+                    FROM group_values
+                    WHERE game_id = %(param1)s AND class != 'params'
+                    ORDER BY class, group_id;
+                """
+                
+                cur.execute(query, {'param1': game_id})
+                
+                results = cur.fetchall()
+                values = []
+                for row in results:
+                    values.append({
+                        "class": row[0],
+                        "group_id": row[1],
+                        "minimizer_value": row[2],
+                        "maximizer_value": row[3]
+                    })
+                return values
+    except Exception as e:
+        print(f"Error in get_all_group_values: {e}")
+        return []
