@@ -164,10 +164,10 @@ if st.session_state['authenticated']:
             name_roles = selected_past_game['name_roles'].split('#_;:)')
             name_roles_1, name_roles_2 = name_roles[0], name_roles[1]
 
-            submission = get_text_from_file_without_timestamp_aux(f'Game{game_id}_Class{CLASS}_Group{GROUP_ID}') 
+            submission = get_text_from_file_without_timestamp_aux(f'Game{game_id}_Class{CLASS}_Group{GROUP_ID}_')
 
             with st.expander("**Explanation**"):
-                game_explanation = get_text_from_file_without_timestamp_aux(f'Explanation_{professor_id}_{game_id}')
+                game_explanation = get_text_from_file_without_timestamp_aux(f'Explanation_{professor_id}_{game_id}_')
                 if game_explanation: st.write(f"{game_explanation}")
                 else: st.write("No explanation found for this game. Please contact your Professor.")
 

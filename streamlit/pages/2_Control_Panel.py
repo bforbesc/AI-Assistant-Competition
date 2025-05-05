@@ -493,7 +493,7 @@ if st.session_state['authenticated']:
                                 simulation_params_names = ['Model', 'Conversation Starter', 'Starting Message', 'Number of Turns', 'Negotiation Termination Message', 'Negotiation Summary Prompt', 'Summary Termination Message']
                                 
                                 # here we do not save the result in cache on purpose
-                                simulation_params = get_text_from_file_without_timestamp(f'Simulation_{selected_game["created_by"]}_{selected_game["game_id"]}')
+                                simulation_params = get_text_from_file_without_timestamp(f'Simulation_{selected_game["created_by"]}_{selected_game["game_id"]}_')
                                 if simulation_params:
                                     simulation_params = simulation_params.split('\n')                               
                                     name_roles = selected_game['name_roles'].split('#_;:)')
@@ -542,6 +542,7 @@ if st.session_state['authenticated']:
 
                             # Get explanation from game_details (already fetched from database)
                             game_explanation_stored = game_details.get("explanation", "")
+                        
                         else:
                             st.error("Game not found.")
 
@@ -693,7 +694,7 @@ if st.session_state['authenticated']:
                         name_roles = selected_game['name_roles'].split('#_;:)')
                         name_roles_1, name_roles_2 = name_roles[0], name_roles[1]
 
-                        values = get_text_from_file_without_timestamp_aux(f'Values_{created_by}_{game_id}')
+                        values = get_text_from_file_without_timestamp_aux(f'Values_{created_by}_{game_id}_')
                         if values:
                             values = values.split('\n')
                             values = [item.split(',') for item in values if item]
@@ -707,7 +708,7 @@ if st.session_state['authenticated']:
                             missing_submissions = ''
                             to_remove = []
                             for i in teams:
-                                prompts = get_text_from_file_without_timestamp_aux(f'Game{game_id}_Class{i[0]}_Group{i[1]}')
+                                prompts = get_text_from_file_without_timestamp_aux(f'Game{game_id}_Class{i[0]}_Group{i[1]}_')
                                 if not prompts: 
                                     to_remove.append(i) 
                                     missing_submissions += f' Class{i[0]}-Group{i[1]},'
@@ -789,7 +790,7 @@ if st.session_state['authenticated']:
 
                                 if submit_button:
                                     if api_key and model:                            
-                                        simulation_params = get_text_from_file_without_timestamp(f'Simulation_{created_by}_{game_id}')
+                                        simulation_params = get_text_from_file_without_timestamp(f'Simulation_{created_by}_{game_id}_')
                                         simulation_params = simulation_params.split('\n')    
                                         simulation_params[3] = int(simulation_params[3])     
                                         
@@ -877,7 +878,7 @@ if st.session_state['authenticated']:
                                 for i in teams: 
                                     class_ = i[0]
                                     group_id = i[1]
-                                    prompts = get_text_from_file_without_timestamp_aux(f'Game{game_id}_Class{class_}_Group{group_id}')
+                                    prompts = get_text_from_file_without_timestamp_aux(f'Game{game_id}_Class{class_}_Group{group_id}_')
 
                                     # Display group header
                                     st.write(f"### Class {class_} - Group {group_id}")

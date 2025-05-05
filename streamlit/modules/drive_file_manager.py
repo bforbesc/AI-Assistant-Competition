@@ -100,7 +100,7 @@ def find_file_by_name_without_timestamp(base_filename):
         q=query,
         spaces='drive',
         fields='files(id, name)',
-        pageSize=10
+        pageSize=50 # TODO: This is not scalable to large folders. We must do something about it.
     ).execute()
     
     items = results.get('files', [])
@@ -133,7 +133,7 @@ def overwrite_text_file(text_content, filename, remove_timestamp=True):
     
     if remove_timestamp == True:
         # Extract base_filename (user_id_game_id) by removing the timestamp
-        base_filename = "_".join(filename.split("_")[:-1])
+        base_filename = "_".join(filename.split("_")[:-1]) + "_" # keep the last underscore
 
         # Check if a file with the same name exists
         file_id_to_delete = find_file_by_name_without_timestamp(base_filename)
