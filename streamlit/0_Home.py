@@ -5,6 +5,8 @@ import jwt
 import os
 from modules.database_handler import authenticate_user, is_professor, update_password, get_user_id_by_email
 from modules.email_service import valid_email, set_password
+# Import the metrics handler module
+from modules.metrics_handler import record_first_login, record_page_entry, record_page_exit, increment_page_visit_count
 
 # Initialize session state variables if they are not already defined
 if 'authenticated' not in st.session_state:
@@ -34,6 +36,18 @@ query_params = st.query_params
 # Check if 'set_password' exists in query params and set session state to True
 if 'show_set_password_form' in query_params:
     st.session_state['show_set_password_form'] = True
+
+# Track page visit when session is already authenticated
+if st.session_state['authenticated'] and st.session_state['user_id']:
+    # Record page entry
+    record_page_entry(st.session_state['user_id'], "Home")
+    # Increment page visit count
+    increment_page_visit_count(st.session_state['user_id'], "Home")
+    
+    # Register an on_change handler to record page exit
+    def record_exit_on_change():
+        if st.session_state['authenticated'] and st.session_state['user_id']:
+            record_page_exit(st.session_state['user_id'], "Home")
 
 # Main login section if the user is not logged in
 if not st.session_state['authenticated']:
@@ -81,6 +95,10 @@ if not st.session_state['authenticated']:
                 st.session_state['authenticated'] = True
                 user_id = get_user_id_by_email(email)  # Default to empty if no user_id is found
                 st.session_state.update({'user_id': user_id})
+                
+                # Record the login in metrics
+                record_first_login(user_id)
+                
                 st.rerun()  # Rerun the page after successful login
             else:
                 st.error("Invalid email or password")
@@ -163,6 +181,10 @@ else:
         sign_out_btn = st.button("Sign Out", key="sign_out", use_container_width=True)
 
         if sign_out_btn:
+            # Record page exit before signing out
+            if st.session_state['user_id']:
+                record_page_exit(st.session_state['user_id'], "Home")
+                
             for key in list(st.session_state.keys()):
                 del st.session_state[key]
             st.cache_resource.clear()

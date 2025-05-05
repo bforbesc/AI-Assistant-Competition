@@ -1,0 +1,75 @@
+# METRICS USAGE EXAMPLES (DO NOT RUN THIS FILE)
+# This file shows examples of how to use the metrics functions in your app
+
+# 1. PAGE VISIT TRACKING
+# ------------------------------
+# At the beginning of any page file, after checking authentication:
+from modules.metrics_handler import record_page_entry, increment_page_visit_count
+
+if 'authenticated' in st.session_state and st.session_state['authenticated']:
+    user_id = st.session_state['user_id']
+    record_page_entry(user_id, "Page_Name")
+    increment_page_visit_count(user_id, "Page_Name")
+
+# At the end of the page file:
+import atexit
+from modules.metrics_handler import record_page_exit
+
+if 'authenticated' in st.session_state and st.session_state['authenticated']:
+    atexit.register(record_page_exit, "Page_Name")
+
+
+# 2. PROMPT METRICS TRACKING
+# ------------------------------
+# When a user submits a prompt to the AI:
+import time
+from modules.metrics_handler import record_prompt_metrics
+
+# Before processing the prompt:
+start_time = time.time()
+
+# Process the prompt and get response...
+# response = get_ai_response(prompt_text)
+
+# After getting the response:
+response_time = time.time() - start_time
+if 'authenticated' in st.session_state and st.session_state['authenticated']:
+    user_id = st.session_state['user_id']
+    record_prompt_metrics(user_id, prompt_text, response_time)
+
+
+# 3. LOGIN TRACKING
+# ------------------------------
+# After successful login:
+from modules.metrics_handler import record_first_login
+
+if 'authenticated' in st.session_state and st.session_state['authenticated']:
+    user_id = st.session_state['user_id']
+    record_first_login(user_id)
+
+
+# 4. CONVERSATION METRICS
+# ------------------------------
+# After a conversation completes:
+from modules.metrics_handler import record_conversation_metrics
+
+if 'authenticated' in st.session_state and st.session_state['authenticated']:
+    user_id = st.session_state['user_id']
+    conversation_id = "unique_conversation_id"  # Generate a unique ID
+    total_exchanges = 10  # Count from conversation
+    conversation_duration = 300  # Duration in seconds
+    record_conversation_metrics(user_id, conversation_id, total_exchanges, conversation_duration)
+
+
+# 5. DEAL METRICS
+# ------------------------------
+# After a deal is completed:
+from modules.metrics_handler import record_deal_metrics
+
+if 'authenticated' in st.session_state and st.session_state['authenticated']:
+    user_id = st.session_state['user_id']
+    deal_id = "unique_deal_id"  # Generate a unique ID
+    negotiation_rounds = 5  # Count from negotiation
+    deal_success = True  # Whether deal was successful
+    deal_value = 25000  # Optional, can be None
+    record_deal_metrics(user_id, deal_id, negotiation_rounds, deal_success, deal_value) 
