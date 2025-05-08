@@ -29,7 +29,8 @@ if 'user_id' not in st.session_state:
     st.session_state['user_id'] = ""
 
 # Get query parameters (like ?set_password=token)
-query_params = st.query_params
+# Using st.experimental_get_query_params() for older Streamlit versions
+query_params = st.experimental_get_query_params()
 
 # Check if 'set_password' exists in query params and set session state to True
 if 'show_set_password_form' in query_params:
@@ -81,7 +82,7 @@ if not st.session_state['authenticated']:
                 st.session_state['authenticated'] = True
                 user_id = get_user_id_by_email(email)  # Default to empty if no user_id is found
                 st.session_state.update({'user_id': user_id})
-                st.rerun()  # Rerun the page after successful login
+                st.experimental_rerun()  # Rerun the page after successful login
             else:
                 st.error("Invalid email or password")
 
@@ -109,7 +110,7 @@ if not st.session_state['authenticated']:
     # Check if there's a set_password token in query parameters
     if 'set_password' in query_params:
         st.markdown("# Set Password")
-        token = query_params['set_password']
+        token = query_params['set_password'][0]  # For experimental_get_query_params, values are in lists
         if token.startswith("b'") and token.endswith("'"):
             token = token[2:-1]  # Clean token format
 
@@ -139,7 +140,8 @@ if not st.session_state['authenticated']:
                             if update_password(st.session_state['set_password_email'], hashed_password):
                                 st.success("Password successfully set!")
                                 time.sleep(1)
-                                st.switch_page("0_Home.py")
+                                st.experimental_set_query_params()  # Clear query params
+                                st.experimental_rerun()
                             else:
                                 st.error("Failed to set password.")
                         else:
@@ -167,7 +169,7 @@ else:
                 del st.session_state[key]
             st.cache_resource.clear()
             # time.sleep(1)
-            st.switch_page("0_Home.py")
+            st.experimental_rerun()
 
     st.title('AI Assistant Competition')
 
