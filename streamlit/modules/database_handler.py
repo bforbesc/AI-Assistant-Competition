@@ -308,7 +308,7 @@ def update_access_to_chats(access, game_id):
         return False
 
 # Function to store game details in the database
-def store_game_in_db(game_id, available, created_by, game_name, number_of_rounds, name_roles, game_academic_year, game_class, password, timestamp_game_creation, submission_deadline, explanation):
+def store_game_in_db(game_id, available, created_by, game_name, number_of_rounds, name_roles, game_academic_year, game_class, password, timestamp_game_creation, submission_deadline, explanation, game_type):
     try:
         with psycopg2.connect(DB_CONNECTION_STRING) as conn:
             with conn.cursor() as cur:
