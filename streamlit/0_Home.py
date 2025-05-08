@@ -5,8 +5,6 @@ import jwt
 import os
 from modules.database_handler import authenticate_user, is_professor, update_password, get_user_id_by_email
 from modules.email_service import valid_email, set_password
-# Import the metrics handler module
-from modules.metrics_handler import record_first_login, record_page_entry, record_page_exit, increment_page_visit_count
 
 # Initialize session state variables if they are not already defined
 if 'authenticated' not in st.session_state:
@@ -36,18 +34,6 @@ query_params = st.query_params
 # Check if 'set_password' exists in query params and set session state to True
 if 'show_set_password_form' in query_params:
     st.session_state['show_set_password_form'] = True
-
-# Track page visit when session is already authenticated
-if st.session_state['authenticated'] and st.session_state['user_id']:
-    # Record page entry
-    record_page_entry(st.session_state['user_id'], "Home")
-    # Increment page visit count
-    increment_page_visit_count(st.session_state['user_id'], "Home")
-    
-    # Register an on_change handler to record page exit
-    def record_exit_on_change():
-        if st.session_state['authenticated'] and st.session_state['user_id']:
-            record_page_exit(st.session_state['user_id'], "Home")
 
 # Main login section if the user is not logged in
 if not st.session_state['authenticated']:
@@ -95,10 +81,6 @@ if not st.session_state['authenticated']:
                 st.session_state['authenticated'] = True
                 user_id = get_user_id_by_email(email)  # Default to empty if no user_id is found
                 st.session_state.update({'user_id': user_id})
-                
-                # Record the login in metrics
-                record_first_login(user_id)
-                
                 st.rerun()  # Rerun the page after successful login
             else:
                 st.error("Invalid email or password")
@@ -181,10 +163,6 @@ else:
         sign_out_btn = st.button("Sign Out", key="sign_out", use_container_width=True)
 
         if sign_out_btn:
-            # Record page exit before signing out
-            if st.session_state['user_id']:
-                record_page_exit(st.session_state['user_id'], "Home")
-                
             for key in list(st.session_state.keys()):
                 del st.session_state[key]
             st.cache_resource.clear()
@@ -201,39 +179,15 @@ else:
                     - **Play**: Submit prompts for ongoing games, and check chats of previous games.
                     - **Control Panel**: A dedicated page accessible only to professors for administrative tasks.
                     - **Profile**: Manage personal information.
+                    - **Playground**: Test and refine AI agents in a sandbox environment.
                     - **About**: Learn more about the app's authors and contributors.
                     """)
-        # Add Game Type Selection for Professors
-        st.subheader("Game Configuration")
-
-        # Define available game types
-        game_types = ["Zero-Sum", "Prisoner's Dilemma"]
-
-        # Create a drop-down menu for selecting the game type
-        selected_game_type = st.selectbox("Select the type of game:", game_types)
-
-        # Display the selected game type
-        st.write(f"Selected Game Type: {selected_game_type}")
-
-        # Store the selected game type in session state
-        st.session_state["game_type"] = selected_game_type
-
-        # Add logic to handle the selected game type
-        if selected_game_type == "Zero-Sum":
-            from modules.game_modes import zero_sum_game
-
-            zero_sum_game()
-            st.write("You have selected a Zero-Sum game.")
-        elif selected_game_type == "Prisoner's Dilemma":
-            from modules.game_modes import prisoners_dilemma_game
-
-            prisoners_dilemma_game()
-            st.write("You have selected a Prisoner's Dilemma game.")
     else:
         st.markdown("""
                     Here's a brief overview of the content of each section of the app:
                     - **Play**: Submit prompts for ongoing games, and check chats of previous games.
                     - **Control Panel**: A dedicated page accessible only to professors for administrative tasks.
                     - **Profile**: View leaderboards and manage personal information.
+                    - **Playground**: Test and refine AI agents in a sandbox environment.
                     - **About**: Learn more about the app's authors and contributors.
                     """)
