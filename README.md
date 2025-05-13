@@ -4,6 +4,28 @@ A learning platform for students to design, train, and deploy AI negotiators to 
 
 ---
 
+## Project Overview
+
+### Development Phases
+1. **Platform Development**: User-friendly interface and core functionality
+2. **Bot Creation**: Tools for users to design and train negotiation strategies
+3. **Performance Tracking**: Comprehensive leaderboard and analytics
+4. **Feedback Loop**: Continuous improvement based on user experience
+
+### Key Features
+- **Multi-agent negotiation**: Host head‑to‑head matches across diverse game templates
+- **Training & evaluation**: Iteratively refine your bot in a sandbox environment
+- **Leaderboard & analytics**: Track performance metrics across rounds and semesters
+- **Extensible architecture**: Plug in new games, roles, and scoring rules
+
+### Technical Stack
+- **Frontend**: Streamlit for interactive dashboard
+- **AI Framework**: Microsoft's AutoGen for agent interactions
+- **Database**: PostgreSQL for data persistence
+- **Testing**: pytest for comprehensive test coverage
+
+---
+
 ## Getting Started
 
 ### For Students
@@ -26,15 +48,6 @@ A learning platform for students to design, train, and deploy AI negotiators to 
 2. Set up your development environment
 3. Initialize the database
 4. Run the application locally
-
----
-
-## Features
-
-- **Multi-agent negotiation**: Host head‑to‑head matches across diverse game templates
-- **Training & evaluation**: Iteratively refine your bot in a sandbox environment
-- **Leaderboard & analytics**: Track performance metrics across rounds and semesters
-- **Extensible architecture**: Plug in new games, roles, and scoring rules
 
 ---
 
