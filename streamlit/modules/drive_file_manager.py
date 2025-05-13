@@ -7,31 +7,42 @@ from datetime import datetime
 import io
 import json
 
-# Define the Google Drive API scope and parent folder ID
+# Define the Google Drive API scope
 SCOPES = ['https://www.googleapis.com/auth/drive']
-PARENT_FOLDER_ID = st.secrets["folder_id"]
 
-# JSON string containing service account credentials
-JSON_STRING = st.secrets["drive"]
-INFO = json.loads(JSON_STRING)
+def get_parent_folder_id():
+    try:
+        return st.secrets["folder_id"]
+    except (KeyError, AttributeError):
+        return None
+
+def get_drive_info():
+    try:
+        json_string = st.secrets["drive"]
+        return json.loads(json_string)
+    except (KeyError, AttributeError, json.JSONDecodeError):
+        return None
 
 # Authenticates using service account credentials
 def authenticate():
-    creds = service_account.Credentials.from_service_account_info(INFO)
+    info = get_drive_info()
+    if not info:
+        raise RuntimeError("Google Drive credentials not found in secrets.")
+    creds = service_account.Credentials.from_service_account_info(info)
     return creds
 
 # Uploads a string as a txt file to Google Drive
 def upload_text_as_file(text_content, filename):
     creds = authenticate()
     service = build('drive', 'v3', credentials=creds)
-    
+    parent_folder_id = get_parent_folder_id()
     # Encode text content as UTF-8
     file_stream = io.BytesIO(text_content.encode('utf-8'))  # Encode to UTF-8 to handle special characters
     media = MediaIoBaseUpload(file_stream, mimetype='text/plain')
 
     file_metadata = {
         'name': f"{filename}.txt",
-        'parents': [PARENT_FOLDER_ID]
+        'parents': [parent_folder_id] if parent_folder_id else []
     }
 
     service.files().create(body=file_metadata, media_body=media, fields='id').execute()
@@ -40,38 +51,35 @@ def upload_text_as_file(text_content, filename):
 def find_file_by_name(filename):
     creds = authenticate()
     service = build('drive', 'v3', credentials=creds)
-    
+    parent_folder_id = get_parent_folder_id()
+    q = f"name='{filename}' and trashed=false"
+    if parent_folder_id:
+        q += f" and '{parent_folder_id}' in parents"
     results = service.files().list(
-        q=f"name='{filename}' and '{PARENT_FOLDER_ID}' in parents and trashed=false",
+        q=q,
         spaces='drive',
         fields='files(id, name)',
         pageSize=10
     ).execute()
-    
     items = results.get('files', [])
     if not items:
         print(f'No files found with the name: {filename}')
         return None
-    
     for item in items:
         if item['name'] == filename:
             return item['id']
-    
     return None
 
 # Reads the content of a file in Google Drive, using its id
 def read_file_content(file_id):
     creds = authenticate()
     service = build('drive', 'v3', credentials=creds)
-    
     request = service.files().get_media(fileId=file_id)
     file_stream = io.BytesIO()
     downloader = MediaIoBaseDownload(file_stream, request)
-    
     done = False
     while done is False:
         _,done = downloader.next_chunk()
-    
     file_stream.seek(0)
     content = file_stream.read().decode('utf-8')
     return content
@@ -88,26 +96,23 @@ def get_text_from_file(filename_to_read):
 def find_file_by_name_without_timestamp(base_filename):
     creds = authenticate()
     service = build('drive', 'v3', credentials=creds)
-    
+    parent_folder_id = get_parent_folder_id()
     # Search for files in the parent folder with a name that starts with the base filename
     query = (
-        f"name contains '{base_filename}' and "
-        f"'{PARENT_FOLDER_ID}' in parents and "
-        f"trashed=false"
+        f"name contains '{base_filename}' and trashed=false"
     )
-    
+    if parent_folder_id:
+        query += f" and '{parent_folder_id}' in parents"
     results = service.files().list(
         q=query,
         spaces='drive',
         fields='files(id, name)',
         pageSize=50 # TODO: This is not scalable to large folders. We must do something about it.
     ).execute()
-    
     items = results.get('files', [])
     if not items:
         print(f"No files found with the pattern: {base_filename}")
         return None
-    
     # Return matching files
     for item in items:
         if base_filename in item['name']:
@@ -130,22 +135,17 @@ def delete_file_by_id(file_id):
 
 # Function to overwrite a file (check if exists, delete, then upload)
 def overwrite_text_file(text_content, filename, remove_timestamp=True):
-    
     if remove_timestamp == True:
         # Extract base_filename (user_id_game_id) by removing the timestamp
         base_filename = "_".join(filename.split("_")[:-1]) + "_" # keep the last underscore
-
         # Check if a file with the same name exists
         file_id_to_delete = find_file_by_name_without_timestamp(base_filename)
-    
     elif remove_timestamp == False:
         file_id_to_delete = find_file_by_name(filename)
         filename = filename.split('.txt')[0]
-
     if file_id_to_delete:
         # Delete the existing file
         delete_file_by_id(file_id_to_delete)
-    
     # Upload the new file
     upload_text_as_file(text_content, filename)
     print(f"New file '{filename}.txt' uploaded successfully.")

@@ -261,14 +261,11 @@ streamlit run app/main.py --server.port=8501 --server.address=0.0.0.0
 
 ### 6.1 Running Tests
 
-The project includes a comprehensive test suite in the `tests` directory. To run the tests:
+The project uses pytest for testing. To run the tests:
 
 ```bash
 # Run all tests
 pytest
-
-# Run with coverage report
-pytest --cov=app
 
 # Run specific test file
 pytest tests/unit_tests.py
@@ -277,57 +274,50 @@ pytest tests/unit_tests.py
 pytest tests/unit_tests.py::test_database_connection
 ```
 
+> **Note:** The codebase is structured so that you can run tests directly from the root directory without any path modifications. The symbolic link (`modules -> streamlit/modules`) ensures that all imports work as expected.
+
 ### 6.2 Test Categories
 
-The test suite includes:
+The `unit_tests.py` file includes tests for:
 
-1. **Unit Tests** (`tests/unit_tests.py`):
-   - Database connection and operations
-   - Authentication and authorization
-   - Game and negotiation logic
-   - Metrics collection and validation
-   - Email service integration
+1. **Authentication**
+   - User login validation
+   - Session management
+   - Role verification
+
+2. **Database**
+   - Connection testing
+   - Table verification
+   - Data operations
+
+3. **Game Features**
+   - Game scoring
+   - Negotiation logic
+   - Student playground
+
+4. **External Services**
    - Google Drive operations
-   - Student playground functionality
+   - Email service
+   - Metrics collection
 
-### 6.3 Writing Tests
+### 6.3 Test Data Setup
 
-When adding new features, follow these guidelines:
-
-1. **Test Structure**:
-   ```python
-   def test_feature_name():
-       # Arrange
-       setup_test_environment()
-       
-       # Act
-       result = function_under_test()
-       
-       # Assert
-       assert result == expected_value
-   ```
-
-2. **Database Tests**:
-   ```python
-   def test_database_operation():
-       # Use test database
-       with test_db_connection() as conn:
-           result = perform_operation(conn)
-           assert result is not None
-   ```
-
-### 6.4 Test Data
-
-The test suite includes functions to generate test data:
+Before running tests, you can create test data:
 
 ```python
 # Create test tables with sample data
 create_test_tables()
 
-# Generate specific test scenarios
-generate_test_metrics()
-generate_test_games()
+# This will create:
+# - Sample page visits
+# - Test user logins
+# - Game interactions
+# - Metrics data
 ```
+
+### 6.4 Test Credentials
+
+Tests use credentials from `streamlit/.streamlit/secrets.toml`. If the file doesn't exist, tests will run with mock data.
 
 ---
 

@@ -1,5 +1,5 @@
 import re
-import ag2 as autogen
+import autogen
 
 from modules.database_handler import insert_round_data, update_round_data, get_error_matchups
 from modules.drive_file_manager import get_text_from_file_without_timestamp, overwrite_text_file

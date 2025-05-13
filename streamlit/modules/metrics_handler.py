@@ -3,8 +3,13 @@ import psycopg2
 import time
 from datetime import datetime
 
-# Import the database connection string
-DB_CONNECTION_STRING = st.secrets["database"]
+# Helper to get the database connection string at runtime
+
+def get_db_connection_string():
+    try:
+        return st.secrets["database"]
+    except (KeyError, AttributeError):
+        return None
 
 # --------- Helper Functions ---------
 
@@ -15,6 +20,10 @@ def ensure_user_exists(user_id):
     Args:
         user_id (str): The ID of the user
     """
+    DB_CONNECTION_STRING = get_db_connection_string()
+    if not DB_CONNECTION_STRING:
+        return
+        
     try:
         with psycopg2.connect(DB_CONNECTION_STRING) as conn:
             with conn.cursor() as cur:
@@ -58,7 +67,16 @@ def record_page_entry(user_id, page_name):
     
     Returns:
         bool: True if successful, False otherwise
+        
+    Raises:
+        ValueError: If user_id or page_name is None or empty
     """
+    DB_CONNECTION_STRING = get_db_connection_string()
+    if not user_id or not isinstance(user_id, str):
+        raise ValueError("user_id must be a non-empty string")
+    if not page_name or not isinstance(page_name, str):
+        raise ValueError("page_name must be a non-empty string")
+        
     try:
         # First ensure the user exists
         ensure_user_exists(user_id)
@@ -109,6 +127,7 @@ def record_page_exit(page_name, duration=None):
     Returns:
         bool: True if successful, False otherwise
     """
+    DB_CONNECTION_STRING = get_db_connection_string()
     try:
         # Get the visit_id from session state
         if 'current_visit_id' not in st.session_state or page_name not in st.session_state.current_visit_id:
@@ -162,6 +181,7 @@ def record_game_start(user_id, game_id):
     Returns:
         bool: True if successful, False otherwise
     """
+    DB_CONNECTION_STRING = get_db_connection_string()
     try:
         timestamp = datetime.now()
         with psycopg2.connect(DB_CONNECTION_STRING) as conn:
@@ -210,6 +230,7 @@ def record_game_end(user_id, game_id):
     Returns:
         bool: True if successful, False otherwise
     """
+    DB_CONNECTION_STRING = get_db_connection_string()
     try:
         timestamp = datetime.now()
         with psycopg2.connect(DB_CONNECTION_STRING) as conn:
@@ -258,6 +279,7 @@ def increment_page_visit_count(user_id, page_name):
     Returns:
         bool: True if successful, False otherwise
     """
+    DB_CONNECTION_STRING = get_db_connection_string()
     try:
         # First ensure the user exists
         ensure_user_exists(user_id)
@@ -320,6 +342,7 @@ def record_prompt_submission(user_id, game_id, prompt_length_role1, prompt_lengt
     Returns:
         bool: True if successful, False otherwise
     """
+    DB_CONNECTION_STRING = get_db_connection_string()
     try:
         timestamp = datetime.now()
         with psycopg2.connect(DB_CONNECTION_STRING) as conn:
@@ -364,6 +387,7 @@ def record_first_login(user_id):
     Returns:
         bool: True if successful, False otherwise
     """
+    DB_CONNECTION_STRING = get_db_connection_string()
     try:
         # First ensure the user exists
         ensure_user_exists(user_id)
@@ -422,6 +446,7 @@ def record_conversation_processing(game_id, processing_time_seconds, error_occur
     Returns:
         bool: True if successful, False otherwise
     """
+    DB_CONNECTION_STRING = get_db_connection_string()
     try:
         timestamp = datetime.now()
         with psycopg2.connect(DB_CONNECTION_STRING) as conn:
@@ -468,6 +493,7 @@ def record_deal_analysis(game_id, round_number, group1_id, group2_id, deal_score
     Returns:
         bool: True if successful, False otherwise
     """
+    DB_CONNECTION_STRING = get_db_connection_string()
     try:
         timestamp = datetime.now()
         with psycopg2.connect(DB_CONNECTION_STRING) as conn:
@@ -509,6 +535,7 @@ def test_database_tables():
     Returns:
         dict: A dictionary with table names as keys and boolean values indicating if they exist
     """
+    DB_CONNECTION_STRING = get_db_connection_string()
     tables = [
         'page_visit', 
         'game_interaction', 
@@ -554,7 +581,20 @@ def record_game_interaction(user_id, game_type, game_id, completion_time, score)
         
     Returns:
         bool: True if successful, False otherwise
+    Raises:
+        ValueError: If any argument is None or invalid
     """
+    DB_CONNECTION_STRING = get_db_connection_string()
+    if not user_id or not isinstance(user_id, str):
+        raise ValueError("user_id must be a non-empty string")
+    if not game_type or not isinstance(game_type, str):
+        raise ValueError("game_type must be a non-empty string")
+    if not game_id or not isinstance(game_id, str):
+        raise ValueError("game_id must be a non-empty string")
+    if not isinstance(completion_time, int) or completion_time < 0:
+        raise ValueError("completion_time must be a non-negative integer")
+    if not isinstance(score, int) or not (0 <= score <= 100):
+        raise ValueError("score must be an integer between 0 and 100")
     try:
         # Ensure test user exists if this is a test
         if user_id == "test_user":
@@ -603,6 +643,7 @@ def record_prompt_metrics(user_id, prompt_text, response_time):
     Returns:
         bool: True if successful, False otherwise
     """
+    DB_CONNECTION_STRING = get_db_connection_string()
     try:
         # First ensure the user exists
         ensure_user_exists(user_id)
@@ -655,6 +696,7 @@ def record_conversation_metrics(user_id, conversation_id, total_exchanges, conve
     Returns:
         bool: True if successful, False otherwise
     """
+    DB_CONNECTION_STRING = get_db_connection_string()
     try:
         # First ensure the user exists
         ensure_user_exists(user_id)
@@ -711,6 +753,7 @@ def record_deal_metrics(user_id, deal_id, negotiation_rounds, deal_success, deal
     Returns:
         bool: True if successful, False otherwise
     """
+    DB_CONNECTION_STRING = get_db_connection_string()
     try:
         # First ensure the user exists
         ensure_user_exists(user_id)

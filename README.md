@@ -10,39 +10,33 @@ This App was developed to create a platform for students to create and train the
 
 Our documentation is organized into several guides:
 
-1. [User Guide](documentation/0_USER_GUIDE.md) - For students and participants
+1. [User Guide](documentation/USER_GUIDE.md) - For students and participants
    - Registration and account setup
    - Dashboard overview
    - Building and submitting bots
    - Testing and leaderboard
 
-2. [Developer Guide](documentation/1_DEVELOPER_GUIDE.md) - For developers and contributors
+2. [Developer Guide](documentation/DEVELOPER_GUIDE.md) - For developers and contributors
    - Setup and installation
    - Development environment
    - Running the application
    - Testing and contribution workflow
-
-3. [Database Guide](documentation/1_LOCAL_DATABASE.md) - For database management
-   - Schema overview
-   - Setup and configuration
-   - Data management
-   - Backup and recovery
 
 ---
 
 ## Quick Start
 
 ### For Students
-1. Read the [User Guide](documentation/0_USER_GUIDE.md)
+1. Read the [User Guide](documentation/USER_GUIDE.md)
 2. Register and create your account
 3. Start building your first bot
 4. Test in the playground
 5. Submit to competitions
 
 ### For Developers
-1. Read the [Developer Guide](documentation/1_DEVELOPER_GUIDE.md)
+1. Read the [Developer Guide](documentation/DEVELOPER_GUIDE.md)
 2. Set up your development environment
-3. Initialize the database (see [Database Guide](documentation/1_LOCAL_DATABASE.md))
+3. Initialize the database
 4. Run the application locally
 
 ---
@@ -60,24 +54,36 @@ Our documentation is organized into several guides:
 
 ```
 ai-assistant-competition/
-├── app/                    # Main application code
-│   ├── main.py            # Streamlit entrypoint
-│   ├── agents/            # Bot interface and templates
-│   ├── db/                # Database models and queries
-│   ├── services/          # Game orchestration & scoring
-│   ├── utils/             # Helper functions
-│   └── ui/                # UI components
-├── documentation/         # User and developer guides
+├── streamlit/              # Main application code
+│   ├── 0_Home.py          # Streamlit entrypoint
+│   ├── modules/           # Core functionality modules
+│   │   ├── metrics_handler.py
+│   │   ├── database_handler.py
+│   │   ├── negotiations.py
+│   │   ├── student_playground.py
+│   │   ├── email_service.py
+│   │   ├── drive_file_manager.py
+│   │   ├── game_modes.py
+│   │   └── schedule.py
+│   ├── pages/            # Streamlit pages
+│   └── .streamlit/       # Streamlit configuration
 ├── tests/                # Test suite
+│   └── unit_tests.py     # Unit tests
+├── documentation/        # User and developer guides
+├── E-R_Model/           # Database entity-relationship models
+├── .devcontainer/       # Development container configuration
+├── Tables_AI_Negotiator.sql           # Database schema
+├── Populate_Tables_AI_Negotiator.sql  # Sample data
 ├── requirements.txt      # Python dependencies
-└── README.md            # This file
+├── environment.yml      # Conda environment configuration
+└── README.md            # Project overview
 ```
 
 ---
 
 ## Contributing
 
-We welcome contributions! Please see our [Developer Guide](documentation/1_DEVELOPER_GUIDE.md#9-contribution-workflow) for details on:
+We welcome contributions! Please see our [Developer Guide](documentation/DEVELOPER_GUIDE.md#9-contribution-workflow) for details on:
 - Setting up your development environment
 - Code style and standards
 - Testing requirements

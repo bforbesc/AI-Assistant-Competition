@@ -11,7 +11,7 @@ This module adds a playground feature to the platform, allowing students to:
 import streamlit as st
 import re
 import time
-import ag2 as autogen
+import autogen
 import random
 from datetime import datetime
 import hashlib
