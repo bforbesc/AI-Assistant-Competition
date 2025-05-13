@@ -1,13 +1,13 @@
 import re
-import autogen
+import ag2 as autogen
 
 from modules.database_handler import insert_round_data, update_round_data, get_error_matchups
 from modules.drive_file_manager import get_text_from_file_without_timestamp, overwrite_text_file
 from modules.schedule import berger_schedule
 
+
 # Function for cleaning of the dialogue messages that may include in the message "Agent Name:"
 def clean_agent_message(agent_name_1, agent_name_2, message):
-    
     if not message:  # Handle possible empty messages
         return ""
 
@@ -20,29 +20,51 @@ def clean_agent_message(agent_name_1, agent_name_2, message):
     return clean_message
 
 
-def create_chat(config_list, agent_1_role, agent_1_prompt, agent_2_role, agent_2_prompt,
-                starting_message, num_turns, termination_message, game_type="zero-sum"):
-    """Create chat between agents based on game type"""
+def create_chat(config_list=None, agent_1_role=None, agent_1_prompt=None,
+                agent_2_role=None, agent_2_prompt=None,
+                team1=None, team2=None, game_id=None, order=None, round_num=None,
+                starting_message="", num_turns=10,
+                summary_prompt="", user=None, summary_agent=None,
+                summary_termination_message="", write_to_file=True,
+                game_type="zero-sum", negotiation_termination_message=None):
+    """
+    Unified create_chat function:
+    - If team1 and team2 are provided, use class-based agents (framework mode)
+    - If prompts and roles are provided, use standalone dynamic agents (experimental mode)
+    """
 
-    agents = create_agents([agent_1_role, agent_2_role], game_type)
+    # Choose mode based on presence of team1/team2
+    if team1 and team2:
+        agent1 = team1["Agent 1"]
+        agent2 = team2["Agent 2"]
+        name1 = agent1.name
+        name2 = agent2.name
+    else:
+        assert all([agent_1_role, agent_1_prompt, agent_2_role, agent_2_prompt, config_list]), \
+            "Standalone mode requires agent roles, prompts, and config_list"
 
-    if game_type == "zero-sum":
-        system_prompt = f"""You are participating in a zero-sum negotiation game.
-{agents[agent_1_role]['role']}
-{agents[agent_1_role]['goal']}
-{agents[agent_1_role]['strategy']}
-Only output numeric values in $ format."""
+        # Build agents dynamically
+        agent1 = autogen.ConversableAgent(
+            name=agent_1_role,
+            llm_config=config_list,
+            human_input_mode="NEVER",
+            chat_messages=None,
+            system_message=agent_1_prompt + (f" When the negotiation is finished, say {negotiation_termination_message}." if negotiation_termination_message else ""),
+            is_termination_msg=lambda msg: negotiation_termination_message in msg["content"] if negotiation_termination_message else False
+        )
+        agent2 = autogen.ConversableAgent(
+            name=agent_2_role,
+            llm_config=config_list,
+            human_input_mode="NEVER",
+            chat_messages=None,
+            system_message=agent_2_prompt + (f" When the negotiation is finished, say {negotiation_termination_message}." if negotiation_termination_message else ""),
+            is_termination_msg=lambda msg: negotiation_termination_message in msg["content"] if negotiation_termination_message else False
+        )
+        name1, name2 = agent1.name, agent2.name
 
-    elif game_type == "prisoners_dilemma":
-        system_prompt = f"""You are participating in a prisoner's dilemma game.
-{agents[agent_1_role]['role']}
-{agents[agent_1_role]['goal']}
-{agents[agent_1_role]['strategy']}
-You must explicitly state 'COOPERATE' or 'DEFECT' in your final message."""
-
-    chat = team1["Agent 1"].initiate_chat(
-        team2["Agent 2"],
-        clear_history = True,
+    chat = agent1.initiate_chat(
+        agent2,
+        clear_history=True,
         max_turns=num_turns,
         message=starting_message
     )
@@ -50,38 +72,41 @@ You must explicitly state 'COOPERATE' or 'DEFECT' in your final message."""
     negotiation = ""
     summ = ""
 
-    for i in range(len(chat.chat_history)):
+    for i, entry in enumerate(chat.chat_history):
+        clean_msg = clean_agent_message(name1, name2, entry['content'])
+        formatted = f"{entry['name']}: {clean_msg}\n\n\n"
+        negotiation += formatted
+        if i >= len(chat.chat_history) - 4:
+            summ += formatted
 
-        clean_msg = clean_agent_message(team1["Agent 1"].name, team2["Agent 2"].name, chat.chat_history[i]['content'])
-        
-        f = chat.chat_history[i]['name'] + ': ' + clean_msg + '\n\n\n'
-        negotiation += f
+    deal_str = ""
+    if summary_agent and user:
+        summary_eval = user.initiate_chat(
+            summary_agent,
+            clear_history=True,
+            max_turns=1,
+            message=summ + summary_prompt
+        )
+        deal_str = summary_eval.chat_history[1]['content']
+        negotiation += "\n" + deal_str
 
-        if i >= (len(chat.chat_history) - 4):
-            summ += f
+    if write_to_file and team1 and team2 and game_id and round_num is not None:
+        if order == "same":
+            filename = f"Game{game_id}_Round{round_num}_{team1['Name']}_{team2['Name']}.txt"
+        elif order == "opposite":
+            filename = f"Game{game_id}_Round{round_num}_{team2['Name']}_{team1['Name']}.txt"
+        else:
+            filename = f"Game{game_id}_Round{round_num}_Match.txt"
+        overwrite_text_file(negotiation, filename, remove_timestamp=False)
 
-    summary_eval = user.initiate_chat(
-        summary_agent,
-        clear_history = True,
-        max_turns=1,
-        message = summ + summary_prompt 
-    )
-    
-    negotiation += "\n" + summary_eval.chat_history[1]['content']
-    if order == "same":
-        filename = f"Game{game_id}_Round{round}_{team1['Name']}_{team2['Name']}.txt" 
-    elif order == "opposite":
-        filename = f"Game{game_id}_Round{round}_{team2['Name']}_{team1['Name']}.txt" 
-    overwrite_text_file(negotiation, filename, remove_timestamp=False)
+    # Parse the result value
+    if summary_termination_message and deal_str.startswith(summary_termination_message):
+        try:
+            return float(re.findall(r'-?\d+(?:[.,]\d+)?', deal_str)[0].replace(",", "."))
+        except Exception:
+            return -1
 
-    if summary_eval.chat_history[1]['content'].startswith(summary_termination_message):
-
-        deal = float(re.findall(r'-?\d+(?:[.,]\d+)?', summary_eval.chat_history[1]['content'])[0].replace(",","."))
-
-        return deal
-    
-    else: return -1
-
+    return -1
 
 def validate_message(message, game_type="zero-sum"):
     """Validate agent messages based on game type"""
@@ -139,8 +164,8 @@ def calculate_score(agent_1_msg, agent_2_msg, agent_1_value, agent_2_value, game
         else:  # 1 defects, 2 cooperates
             return {"player1_score": 5, "player2_score": 0}
 
-def create_agents(game_id, order, teams, values, name_roles, config_list, negotiation_termination_message):
 
+def create_agents(game_id, order, teams, values, name_roles, config_list, negotiation_termination_message):
     team_info = []
 
     if order == "same":
@@ -149,84 +174,89 @@ def create_agents(game_id, order, teams, values, name_roles, config_list, negoti
     elif order == "opposite":
         role_1, role_2 = name_roles[1].replace(" ", ""), name_roles[0].replace(" ", "")
 
-    if config_list["config_list"][0]["model"] == "gpt-4o-mini": words = 50
+    if config_list["config_list"][0]["model"] == "gpt-4o-mini":
+        words = 50
 
-    elif config_list["config_list"][0]["model"] == "gpt-4o": words = 50
+    elif config_list["config_list"][0]["model"] == "gpt-4o":
+        words = 50
 
-    else: words = 50
+    else:
+        words = 50
 
     for team in teams:
 
-        submission = get_text_from_file_without_timestamp(f'Game{game_id}_Class{team[0]}_Group{team[1]}_') 
+        submission = get_text_from_file_without_timestamp(f'Game{game_id}_Class{team[0]}_Group{team[1]}')
 
         value1 = int(next((value for value in values if value[0] == team[0] and int(value[1]) == team[1]), None)[2])
         value2 = int(next((value for value in values if value[0] == team[0] and int(value[1]) == team[1]), None)[3])
-    
+
         prompts = [part.strip() for part in submission.split('#_;:)')]
 
         if order == "opposite":
             aux_val = value1
             value1 = value2
             value2 = aux_val
-            prompts = prompts[::-1] # reverse the prompts
+            prompts = prompts[::-1]  # reverse the prompts
 
         new_team = {"Name": f'Class{team[0]}_Group{team[1]}',
-                    "Value 1": value1, # value as role_1
-                    "Value 2": value2, # value as role_2
+                    "Value 1": value1,  # value as role_1
+                    "Value 2": value2,  # value as role_2
                     "Agent 1": autogen.ConversableAgent(
-                                name=f"Class{team[0]}_Group{team[1]}_{role_1}",
-                                llm_config=config_list,
-                                human_input_mode="NEVER",
-                                chat_messages=None,
-                                system_message = prompts[0] + f" When the negotiation is finished, say {negotiation_termination_message}. This is a short conversation, you will have about 10 opportunities to intervene. Try to keep your answers concise, try not to go over {words} words.",
-                                is_termination_msg=lambda msg: negotiation_termination_message in msg["content"]
-                                ),
+                        name=f"Class{team[0]}_Group{team[1]}_{role_1}",
+                        llm_config=config_list,
+                        human_input_mode="NEVER",
+                        chat_messages=None,
+                        system_message=prompts[
+                                           0] + f" When the negotiation is finished, say {negotiation_termination_message}. This is a short conversation, you will have about 10 opportunities to intervene. Try to keep your answers concise, try not to go over {words} words.",
+                        is_termination_msg=lambda msg: negotiation_termination_message in msg["content"]
+                    ),
 
                     "Agent 2": autogen.ConversableAgent(
-                                name=f"Class{team[0]}_Group{team[1]}_{role_2}",
-                                llm_config=config_list,
-                                human_input_mode="NEVER",
-                                chat_messages=None,
-                                system_message = prompts[1] + f' When the negotiation is finished, say {negotiation_termination_message}. This is a short conversation, you will have about 10 opportunities to intervene. Try to keep your answers concise, try not to go over {words} words.',
-                                is_termination_msg=lambda msg: negotiation_termination_message in msg["content"]
-                                )                
+                        name=f"Class{team[0]}_Group{team[1]}_{role_2}",
+                        llm_config=config_list,
+                        human_input_mode="NEVER",
+                        chat_messages=None,
+                        system_message=prompts[
+                                           1] + f' When the negotiation is finished, say {negotiation_termination_message}. This is a short conversation, you will have about 10 opportunities to intervene. Try to keep your answers concise, try not to go over {words} words.',
+                        is_termination_msg=lambda msg: negotiation_termination_message in msg["content"]
+                    )
                     }
-        
+
         team_info.append(new_team)
 
     return team_info
 
 
-def create_chats(game_id, config_list, name_roles, order, teams, values, num_rounds, starting_message, num_turns, negotiation_termination_message, summary_prompt, summary_termination_message):
-
-    schedule = berger_schedule([f'Class{i[0]}_Group{i[1]}' for i in teams], num_rounds) 
+def create_chats(game_id, config_list, name_roles, order, teams, values, num_rounds, starting_message, num_turns,
+                 negotiation_termination_message, summary_prompt, summary_termination_message):
+    schedule = berger_schedule([f'Class{i[0]}_Group{i[1]}' for i in teams], num_rounds)
 
     team_info = create_agents(game_id, order, teams, values, name_roles, config_list, negotiation_termination_message)
-    
+
     user = autogen.UserProxyAgent(
         name="User",
-        llm_config=config_list,   
-        human_input_mode = "NEVER",
-        is_termination_msg=lambda msg: summary_termination_message in msg["content"],
-        code_execution_config = {"work_dir": "repo", "use_docker": False}
-    )
-
-    summary_agent = autogen.AssistantAgent(
-        name = "Summary_Agent",
         llm_config=config_list,
         human_input_mode="NEVER",
         is_termination_msg=lambda msg: summary_termination_message in msg["content"],
-        system_message = f"You will be asked to answer a quick question regarding the outcome of a negotiation. You will be provided with the last 4 interactions of the negotiation and your answer should be based on them. Your answer must be of the type {summary_termination_message}, just adding the value agreed, as in '{summary_termination_message} x', x being the value. Make sure the intervenients have reached an agreement. This means that they both agree on the same value and that the conversation ends with {negotiation_termination_message}. However, this is not enough. Please make sure both parties have reached an agreement. If there is no agreement, your answer should be '{summary_termination_message} -1'."
+        code_execution_config={"work_dir": "repo", "use_docker": False}
+    )
+
+    summary_agent = autogen.AssistantAgent(
+        name="Summary_Agent",
+        llm_config=config_list,
+        human_input_mode="NEVER",
+        is_termination_msg=lambda msg: summary_termination_message in msg["content"],
+        system_message=f"You will be asked to answer a quick question regarding the outcome of a negotiation. You will be provided with the last 4 interactions of the negotiation and your answer should be based on them. Your answer must be of the type {summary_termination_message}, just adding the value agreed, as in '{summary_termination_message} x', x being the value. Make sure the intervenients have reached an agreement. This means that they both agree on the same value and that the conversation ends with {negotiation_termination_message}. However, this is not enough. Please make sure both parties have reached an agreement. If there is no agreement, your answer should be '{summary_termination_message} -1'."
     )
 
     max_retries = 10
 
     errors_matchups = []
 
-    for round_, round_matches in enumerate(schedule, 1):  
+    for round_, round_matches in enumerate(schedule, 1):
 
         for match in round_matches:
-            
+
             # Identify the two teams that play in each match of the round, by their id
             team1 = next((team for team in team_info if team["Name"] == match[0]), None)
             team2 = next((team for team in team_info if team["Name"] == match[1]), None)
@@ -245,19 +275,23 @@ def create_chats(game_id, config_list, name_roles, order, teams, values, num_rou
             for attempt in range(max_retries):
                 try:
 
-                    if attempt%2==0: c = " "
-                    else: c = ""
-                        
+                    if attempt % 2 == 0:
+                        c = " "
+                    else:
+                        c = ""
+
                     starting_message += c
-                    
+
                     # First chat
-                    deal = create_chat(game_id, order, team1, team2, starting_message, num_turns, summary_prompt, round_, user, summary_agent, summary_termination_message) 
+                    deal = create_chat(game_id, order, team1, team2, starting_message, num_turns, summary_prompt,
+                                       round_, user, summary_agent, summary_termination_message)
 
                     if deal == -1:
                         score1_team1 = 0
                         score1_team2 = 0
 
-                        update_round_data(game_id, round_, class1, group1, class2, group2, score1_team1, score1_team2, order) 
+                        update_round_data(game_id, round_, class1, group1, class2, group2, score1_team1, score1_team2,
+                                          order)
 
                     else:
 
@@ -272,72 +306,81 @@ def create_chats(game_id, config_list, name_roles, order, teams, values, num_rou
                                 score1_team2 = 0
 
                             else:
-                                score1_team2 = round((deal - team1["Value 1"])/(team2["Value 2"] - team1["Value 1"]), 4)
+                                score1_team2 = round((deal - team1["Value 1"]) / (team2["Value 2"] - team1["Value 1"]),
+                                                     4)
                                 score1_team1 = 1 - score1_team2
 
                             # update_round_data(game_id, round_, class1, group1, class2, group2, score1_team1, score1_team2, order)
 
                         elif order == "opposite":
-                            
+
                             if deal > team1["Value 1"]:
                                 score1_team1 = 1
                                 score1_team2 = 0
 
-                            elif deal < team2["Value 2"]: 
+                            elif deal < team2["Value 2"]:
                                 score1_team1 = 0
                                 score1_team2 = 1
 
                             else:
-                                score1_team1 = round((deal - team2["Value 2"])/(team1["Value 1"] - team2["Value 2"]), 4)
+                                score1_team1 = round((deal - team2["Value 2"]) / (team1["Value 1"] - team2["Value 2"]),
+                                                     4)
                                 score1_team2 = 1 - score1_team1
 
-                        update_round_data(game_id, round_, class1, group1, class2, group2, score1_team1, score1_team2, order) 
+                        update_round_data(game_id, round_, class1, group1, class2, group2, score1_team1, score1_team2,
+                                          order)
 
                     break  # Exit retry loop on success
 
-                except Exception:                    
+                except Exception:
                     if attempt == max_retries - 1:
-                        if order == "same": errors_matchups.append((round_, team1["Name"], team2["Name"]))
-                        elif order == "opposite": errors_matchups.append((round_, team2["Name"], team1["Name"]))
+                        if order == "same":
+                            errors_matchups.append((round_, team1["Name"], team2["Name"]))
+                        elif order == "opposite":
+                            errors_matchups.append((round_, team2["Name"], team1["Name"]))
 
             # Attempt to create the second chat
             for attempt in range(max_retries):
                 try:
 
-                    if attempt%2==0: c = " "
-                    else: c= ""
+                    if attempt % 2 == 0:
+                        c = " "
+                    else:
+                        c = ""
 
                     starting_message += c
 
                     # Second chat
-                    deal = create_chat(game_id, order, team2, team1, starting_message, num_turns, summary_prompt, round_, user, summary_agent, summary_termination_message)
+                    deal = create_chat(game_id, order, team2, team1, starting_message, num_turns, summary_prompt,
+                                       round_, user, summary_agent, summary_termination_message)
 
                     if order == "same":
 
                         if deal == -1:
                             score2_team1 = 0
                             score2_team2 = 0
-                                
+
                         elif deal > team1["Value 2"]:
                             score2_team1 = 1
                             score2_team2 = 0
 
-                        elif deal < team2["Value 1"]: 
+                        elif deal < team2["Value 1"]:
                             score2_team1 = 0
                             score2_team2 = 1
 
                         else:
-                            score2_team1 = round((deal - team2["Value 1"])/(team1["Value 2"] - team2["Value 1"]), 4)
+                            score2_team1 = round((deal - team2["Value 1"]) / (team1["Value 2"] - team2["Value 1"]), 4)
                             score2_team2 = 1 - score2_team1
 
-                        update_round_data(game_id, round_, class1, group1, class2, group2, score2_team1, score2_team2, "opposite")
+                        update_round_data(game_id, round_, class1, group1, class2, group2, score2_team1, score2_team2,
+                                          "opposite")
 
                     elif order == "opposite":
 
                         if deal == -1:
                             score2_team1 = 0
                             score2_team2 = 0
-                        
+
                         elif deal > team2["Value 1"]:
                             score2_team1 = 0
                             score2_team2 = 1
@@ -347,33 +390,37 @@ def create_chats(game_id, config_list, name_roles, order, teams, values, num_rou
                             score2_team2 = 0
 
                         else:
-                            score2_team2 = round((deal - team1["Value 2"])/(team2["Value 1"] - team1["Value 2"]), 4)
+                            score2_team2 = round((deal - team1["Value 2"]) / (team2["Value 1"] - team1["Value 2"]), 4)
                             score2_team1 = 1 - score2_team2
 
-                        update_round_data(game_id, round_, class1, group1, class2, group2, score2_team1, score2_team2, "same")
-                        
+                        update_round_data(game_id, round_, class1, group1, class2, group2, score2_team1, score2_team2,
+                                          "same")
+
                     break  # Exit retry loop on success
 
-                except Exception:                    
+                except Exception:
                     if attempt == max_retries - 1:
-                        if order == "same": errors_matchups.append((round_, team2["Name"], team1["Name"]))
-                        elif order == "opposite": errors_matchups.append((round_, team1["Name"], team2["Name"]))
-            
-    # error messages
-    if not errors_matchups: return "All negotiations were completed successfully!"
+                        if order == "same":
+                            errors_matchups.append((round_, team2["Name"], team1["Name"]))
+                        elif order == "opposite":
+                            errors_matchups.append((round_, team1["Name"], team2["Name"]))
 
-    else: 
-        
+    # error messages
+    if not errors_matchups:
+        return "All negotiations were completed successfully!"
+
+    else:
+
         error_message = "The following negotiations were unsuccessful:\n\n"
 
         for match in errors_matchups:
             error_message += f"- Round {match[0]} - {match[1]} ({name_roles[0]}) vs {match[2]} ({name_roles[1]});\n"
 
         return error_message
-    
 
-def create_all_error_chats(game_id, config_list, name_roles, order, values, starting_message, num_turns, negotiation_termination_message, summary_prompt, summary_termination_message):
 
+def create_all_error_chats(game_id, config_list, name_roles, order, values, starting_message, num_turns,
+                           negotiation_termination_message, summary_prompt, summary_termination_message):
     matches = get_error_matchups(game_id)
 
     teams1 = [i[1] for i in matches]
@@ -381,31 +428,31 @@ def create_all_error_chats(game_id, config_list, name_roles, order, values, star
 
     unique_teams = set(tuple(item) for item in (teams1 + teams2))
     teams = [list(team) for team in unique_teams]
-    
+
     team_info = create_agents(game_id, order, teams, values, name_roles, config_list, negotiation_termination_message)
 
     user = autogen.UserProxyAgent(
         name="User",
-        llm_config=config_list,   
-        human_input_mode = "NEVER",
-        is_termination_msg=lambda msg: summary_termination_message in msg["content"],
-        code_execution_config = {"work_dir": "repo", "use_docker": False}
-    )
-
-    summary_agent = autogen.AssistantAgent(
-        name = "Summary_Agent",
         llm_config=config_list,
         human_input_mode="NEVER",
         is_termination_msg=lambda msg: summary_termination_message in msg["content"],
-        system_message = f"You will be asked to answer a quick question regarding the outcome of a negotiation. You will be provided with the last 4 interactions of the negotiation and your answer should be based on them. Your answer must be of the type {summary_termination_message}, just adding the value agreed, as in '{summary_termination_message} x', x being the value. Make sure the conversation has ended with {negotiation_termination_message}, otherwise the negotiation has not been finalized and there was no agreement. If this happens, i.e., if the final message does not include {negotiation_termination_message}, your answer should be '{summary_termination_message} -1'."  
+        code_execution_config={"work_dir": "repo", "use_docker": False}
+    )
+
+    summary_agent = autogen.AssistantAgent(
+        name="Summary_Agent",
+        llm_config=config_list,
+        human_input_mode="NEVER",
+        is_termination_msg=lambda msg: summary_termination_message in msg["content"],
+        system_message=f"You will be asked to answer a quick question regarding the outcome of a negotiation. You will be provided with the last 4 interactions of the negotiation and your answer should be based on them. Your answer must be of the type {summary_termination_message}, just adding the value agreed, as in '{summary_termination_message} x', x being the value. Make sure the conversation has ended with {negotiation_termination_message}, otherwise the negotiation has not been finalized and there was no agreement. If this happens, i.e., if the final message does not include {negotiation_termination_message}, your answer should be '{summary_termination_message} -1'."
     )
 
     max_retries = 10
 
     errors_matchups = []
-    
+
     for match in matches:
-        
+
         team1 = next((team for team in team_info if team["Name"] == f"Class{match[1][0]}_Group{match[1][1]}"), None)
         team2 = next((team for team in team_info if team["Name"] == f"Class{match[2][0]}_Group{match[2][1]}"), None)
 
@@ -414,14 +461,17 @@ def create_all_error_chats(game_id, config_list, name_roles, order, values, star
             for attempt in range(max_retries):
                 try:
 
-                    if attempt%2==0: c = " "
-                    else: c = ""
-                        
+                    if attempt % 2 == 0:
+                        c = " "
+                    else:
+                        c = ""
+
                     starting_message += c
-                    
+
                     if order == "same":
 
-                        deal = create_chat(game_id, order, team1, team2, starting_message, num_turns, summary_prompt, match[0], user, summary_agent, summary_termination_message)
+                        deal = create_chat(game_id, order, team1, team2, starting_message, num_turns, summary_prompt,
+                                           match[0], user, summary_agent, summary_termination_message)
 
                         if deal == -1:
                             score1_team1 = 0
@@ -438,12 +488,14 @@ def create_all_error_chats(game_id, config_list, name_roles, order, values, star
                                 score1_team2 = 0
 
                             else:
-                                score1_team2 = round((deal - team1["Value 1"])/(team2["Value 2"] - team1["Value 1"]), 4)
+                                score1_team2 = round((deal - team1["Value 1"]) / (team2["Value 2"] - team1["Value 1"]),
+                                                     4)
                                 score1_team1 = 1 - score1_team2
 
                     elif order == "opposite":
 
-                        deal = create_chat(game_id, order, team2, team1, starting_message, num_turns, summary_prompt, match[0], user, summary_agent, summary_termination_message)
+                        deal = create_chat(game_id, order, team2, team1, starting_message, num_turns, summary_prompt,
+                                           match[0], user, summary_agent, summary_termination_message)
 
                         if deal == -1:
                             score1_team1 = 0
@@ -460,33 +512,37 @@ def create_all_error_chats(game_id, config_list, name_roles, order, values, star
                                 score1_team2 = 0
 
                             else:
-                                score1_team2 = round((deal - team1["Value 2"])/(team2["Value 1"] - team1["Value 2"]), 4)
+                                score1_team2 = round((deal - team1["Value 2"]) / (team2["Value 1"] - team1["Value 2"]),
+                                                     4)
                                 score1_team1 = 1 - score1_team2
 
-                    update_round_data(game_id, match[0], match[1][0], match[1][1], match[2][0], match[2][1], score1_team1, score1_team2, "same")
+                    update_round_data(game_id, match[0], match[1][0], match[1][1], match[2][0], match[2][1],
+                                      score1_team1, score1_team2, "same")
 
                     break
 
                 except Exception:
-                    
+
                     if attempt == max_retries - 1:
-                    
                         errors_matchups.append((match[0], team1["Name"], team2["Name"]))
 
         if match[4] == 1:
 
             for attempt in range(max_retries):
-                
+
                 try:
 
-                    if attempt%2==0: c = " "
-                    else: c= ""
+                    if attempt % 2 == 0:
+                        c = " "
+                    else:
+                        c = ""
 
                     starting_message += c
 
                     if order == "same":
 
-                        deal = create_chat(game_id, order, team2, team1, starting_message, num_turns, summary_prompt, match[0], user, summary_agent, summary_termination_message)
+                        deal = create_chat(game_id, order, team2, team1, starting_message, num_turns, summary_prompt,
+                                           match[0], user, summary_agent, summary_termination_message)
 
                         if deal == -1:
                             score2_team1 = 0
@@ -503,12 +559,14 @@ def create_all_error_chats(game_id, config_list, name_roles, order, values, star
                                 score2_team2 = 1
 
                             else:
-                                score2_team1 = round((deal - team2["Value 1"])/(team1["Value 2"] - team2["Value 1"]), 4)
+                                score2_team1 = round((deal - team2["Value 1"]) / (team1["Value 2"] - team2["Value 1"]),
+                                                     4)
                                 score2_team2 = 1 - score2_team1
-                    
+
                     elif order == "opposite":
 
-                        deal = create_chat(game_id, order, team1, team2, starting_message, num_turns, summary_prompt, match[0], user, summary_agent, summary_termination_message)
+                        deal = create_chat(game_id, order, team1, team2, starting_message, num_turns, summary_prompt,
+                                           match[0], user, summary_agent, summary_termination_message)
 
                         if deal == -1:
                             score2_team1 = 0
@@ -525,23 +583,25 @@ def create_all_error_chats(game_id, config_list, name_roles, order, values, star
                                 score2_team2 = 1
 
                             else:
-                                score2_team1 = round((deal - team2["Value 2"])/(team1["Value 1"] - team2["Value 2"]), 4)
+                                score2_team1 = round((deal - team2["Value 2"]) / (team1["Value 1"] - team2["Value 2"]),
+                                                     4)
                                 score2_team2 = 1 - score2_team1
-                    
-                    update_round_data(game_id, match[0], match[1][0], match[1][1], match[2][0], match[2][1], score2_team1, score2_team2, "opposite")
-                    
-                    break  
+
+                    update_round_data(game_id, match[0], match[1][0], match[1][1], match[2][0], match[2][1],
+                                      score2_team1, score2_team2, "opposite")
+
+                    break
 
                 except Exception:
-                    
+
                     if attempt == max_retries - 1:
-                    
-                        errors_matchups.append(( match[0], team2["Name"], team1["Name"]))
+                        errors_matchups.append((match[0], team2["Name"], team1["Name"]))
 
-    if not errors_matchups: return "All negotiations were completed successfully!"
+    if not errors_matchups:
+        return "All negotiations were completed successfully!"
 
-    else: 
-        
+    else:
+
         error_message = "The following negotiations were unsuccessful:\n\n"
 
         for match in errors_matchups:
