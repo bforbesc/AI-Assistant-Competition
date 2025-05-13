@@ -1,40 +1,28 @@
 # AI Assistant Competition 
 
-Welcome to the AI Assistant Competition platform—a learning environment where students design, train, and deploy AI negotiators to compete in classical negotiation challenges (e.g., Ultimatum Game, Prisoner's Dilemma). This document serves both as a quickstart for participants and a detailed guide for developers and contributors. 
-
-This App was developed to create a platform for students to create and train their own AI assistants (bots) to compete in various negotiation challenges. The project is part of the course "AI Impact on Business" at Nova SBE, and its initial focus is on negotiation games, such as variations of the Ultimatum Game or the Prisoner's Dilemma. The platform offers a user-friendly interface that enables students to design, train, and test their Assistants, along with a leaderboard to track their performance.
+A learning platform for students to design, train, and deploy AI negotiators to compete in classical negotiation challenges (e.g., Ultimatum Game, Prisoner's Dilemma). This project is part of the course "AI Impact on Business" at Nova SBE, offering a user-friendly interface for students to design, train, and test their AI assistants, along with a leaderboard to track their performance.
 
 ---
 
-## Documentation
+## Getting Started
 
-Our documentation is organized into several guides:
-
-1. [User Guide](documentation/USER_GUIDE.md) - For students and participants
+### For Students
+1. Read the [User Guide](documentation/USER_GUIDE.md) for:
    - Registration and account setup
    - Dashboard overview
    - Building and submitting bots
    - Testing and leaderboard
-
-2. [Developer Guide](documentation/DEVELOPER_GUIDE.md) - For developers and contributors
-   - Setup and installation
-   - Development environment
-   - Running the application
-   - Testing and contribution workflow
-
----
-
-## Quick Start
-
-### For Students
-1. Read the [User Guide](documentation/USER_GUIDE.md)
 2. Register and create your account
 3. Start building your first bot
 4. Test in the playground
 5. Submit to competitions
 
 ### For Developers
-1. Read the [Developer Guide](documentation/DEVELOPER_GUIDE.md)
+1. Read the [Developer Guide](documentation/DEVELOPER_GUIDE.md) for:
+   - Setup and installation
+   - Development environment
+   - Running the application
+   - Testing and contribution workflow
 2. Set up your development environment
 3. Initialize the database
 4. Run the application locally
