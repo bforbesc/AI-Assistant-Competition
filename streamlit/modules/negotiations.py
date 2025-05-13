@@ -20,7 +20,25 @@ def clean_agent_message(agent_name_1, agent_name_2, message):
     return clean_message
 
 
-def create_chat(game_id, order, team1, team2, starting_message, num_turns, summary_prompt, round, user, summary_agent, summary_termination_message):
+def create_chat(config_list, agent_1_role, agent_1_prompt, agent_2_role, agent_2_prompt,
+                starting_message, num_turns, termination_message, game_type="zero-sum"):
+    """Create chat between agents based on game type"""
+
+    agents = create_agents([agent_1_role, agent_2_role], game_type)
+
+    if game_type == "zero-sum":
+        system_prompt = f"""You are participating in a zero-sum negotiation game.
+{agents[agent_1_role]['role']}
+{agents[agent_1_role]['goal']}
+{agents[agent_1_role]['strategy']}
+Only output numeric values in $ format."""
+
+    elif game_type == "prisoners_dilemma":
+        system_prompt = f"""You are participating in a prisoner's dilemma game.
+{agents[agent_1_role]['role']}
+{agents[agent_1_role]['goal']}
+{agents[agent_1_role]['strategy']}
+You must explicitly state 'COOPERATE' or 'DEFECT' in your final message."""
 
     chat = team1["Agent 1"].initiate_chat(
         team2["Agent 2"],
@@ -64,6 +82,62 @@ def create_chat(game_id, order, team1, team2, starting_message, num_turns, summa
     
     else: return -1
 
+
+def validate_message(message, game_type="zero-sum"):
+    """Validate agent messages based on game type"""
+    if game_type == "zero-sum":
+        # Check for valid price format
+        price_pattern = r'\$\d+'
+        return bool(re.search(price_pattern, message))
+
+    elif game_type == "prisoners_dilemma":
+        # Check for valid decision
+        decision_pattern = r'(COOPERATE|DEFECT)'
+        return bool(re.search(decision_pattern, message))
+
+    return False
+
+def create_agent_message(config_list, role, prompt, previous_messages, game_type="zero-sum"):
+    """Generate agent messages with game type specific validation"""
+    message = generate_message(config_list, role, prompt, previous_messages)
+
+    if not validate_message(message, game_type):
+        if game_type == "zero-sum":
+            return "Invalid message format. Please include a price in $ format."
+        elif game_type == "prisoners_dilemma":
+            return "Invalid message format. Please explicitly state COOPERATE or DEFECT."
+
+    return message
+
+# In modules/negotiations.py
+
+def calculate_score(agent_1_msg, agent_2_msg, agent_1_value, agent_2_value, game_type="zero-sum"):
+    """Calculate scores based on game type"""
+    if game_type == "zero-sum":
+        # Extract price from messages
+        price = extract_price(agent_1_msg) or extract_price(agent_2_msg)
+        if not price:
+            return None
+
+        return {
+            "minimizer_score": agent_1_value - price,
+            "maximizer_score": price - agent_2_value
+        }
+
+    elif game_type == "prisoners_dilemma":
+        # Extract decisions
+        decision1 = "COOPERATE" in agent_1_msg.upper()
+        decision2 = "COOPERATE" in agent_2_msg.upper()
+
+        # Prisoner's dilemma payoff matrix
+        if decision1 and decision2:  # Both cooperate
+            return {"player1_score": 3, "player2_score": 3}
+        elif not decision1 and not decision2:  # Both defect
+            return {"player1_score": 1, "player2_score": 1}
+        elif decision1:  # 1 cooperates, 2 defects
+            return {"player1_score": 0, "player2_score": 5}
+        else:  # 1 defects, 2 cooperates
+            return {"player1_score": 5, "player2_score": 0}
 
 def create_agents(game_id, order, teams, values, name_roles, config_list, negotiation_termination_message):
 
