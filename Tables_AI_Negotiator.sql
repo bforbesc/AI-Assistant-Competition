@@ -69,3 +69,37 @@ CREATE TABLE round (
     PRIMARY KEY(game_id, round_number, group1_class, group1_id, group2_class, group2_id),     -- Set game_id, round_number, group1_class, group1_id,  group2_class and group2_id as the composite primary keys
     FOREIGN KEY(game_id) REFERENCES game(game_id)                         -- Foreign key linking to the game_id in the game table
 );
+
+
+-- Create a table for game modes
+CREATE TABLE game_modes (
+    mode_id SERIAL PRIMARY KEY,
+    mode_name VARCHAR(50) NOT NULL UNIQUE,
+    description TEXT
+);
+
+-- Add a foreign key to the games table to reference game modes
+ALTER TABLE games
+ADD COLUMN mode_id INT,
+ADD CONSTRAINT fk_game_mode FOREIGN KEY (mode_id) REFERENCES game_modes(mode_id);
+
+-- Add a table for Zero-Sum game-specific configurations
+CREATE TABLE zero_sum_game_config (
+    config_id SERIAL PRIMARY KEY,
+    game_id INT NOT NULL,
+    minimizer_role_name VARCHAR(50),
+    maximizer_role_name VARCHAR(50),
+    min_minimizer_value INT,
+    max_minimizer_value INT,
+    min_maximizer_value INT,
+    max_maximizer_value INT,
+    FOREIGN KEY (game_id) REFERENCES games(game_id) ON DELETE CASCADE
+);
+
+-- Add a table for Prisoner's Dilemma game-specific configurations
+CREATE TABLE prisoners_dilemma_config (
+    config_id SERIAL PRIMARY KEY,
+    game_id INT NOT NULL,
+    payoff_matrix JSONB NOT NULL,
+    FOREIGN KEY (game_id) REFERENCES games(game_id) ON DELETE CASCADE
+);

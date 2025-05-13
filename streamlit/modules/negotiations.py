@@ -20,10 +20,50 @@ def clean_agent_message(agent_name_1, agent_name_2, message):
     return clean_message
 
 
-def create_chat(game_id, order, team1, team2, starting_message, num_turns, summary_prompt, round, user, summary_agent,
-                summary_termination_message):
-    chat = team1["Agent 1"].initiate_chat(
-        team2["Agent 2"],
+def create_chat(config_list=None, agent_1_role=None, agent_1_prompt=None,
+                agent_2_role=None, agent_2_prompt=None,
+                team1=None, team2=None, game_id=None, order=None, round_num=None,
+                starting_message="", num_turns=10,
+                summary_prompt="", user=None, summary_agent=None,
+                summary_termination_message="", write_to_file=True,
+                game_type="zero-sum", negotiation_termination_message=None):
+    """
+    Unified create_chat function:
+    - If team1 and team2 are provided, use class-based agents (framework mode)
+    - If prompts and roles are provided, use standalone dynamic agents (experimental mode)
+    """
+
+    # Choose mode based on presence of team1/team2
+    if team1 and team2:
+        agent1 = team1["Agent 1"]
+        agent2 = team2["Agent 2"]
+        name1 = agent1.name
+        name2 = agent2.name
+    else:
+        assert all([agent_1_role, agent_1_prompt, agent_2_role, agent_2_prompt, config_list]), \
+            "Standalone mode requires agent roles, prompts, and config_list"
+
+        # Build agents dynamically
+        agent1 = autogen.ConversableAgent(
+            name=agent_1_role,
+            llm_config=config_list,
+            human_input_mode="NEVER",
+            chat_messages=None,
+            system_message=agent_1_prompt + (f" When the negotiation is finished, say {negotiation_termination_message}." if negotiation_termination_message else ""),
+            is_termination_msg=lambda msg: negotiation_termination_message in msg["content"] if negotiation_termination_message else False
+        )
+        agent2 = autogen.ConversableAgent(
+            name=agent_2_role,
+            llm_config=config_list,
+            human_input_mode="NEVER",
+            chat_messages=None,
+            system_message=agent_2_prompt + (f" When the negotiation is finished, say {negotiation_termination_message}." if negotiation_termination_message else ""),
+            is_termination_msg=lambda msg: negotiation_termination_message in msg["content"] if negotiation_termination_message else False
+        )
+        name1, name2 = agent1.name, agent2.name
+
+    chat = agent1.initiate_chat(
+        agent2,
         clear_history=True,
         max_turns=num_turns,
         message=starting_message
@@ -32,38 +72,97 @@ def create_chat(game_id, order, team1, team2, starting_message, num_turns, summa
     negotiation = ""
     summ = ""
 
-    for i in range(len(chat.chat_history)):
+    for i, entry in enumerate(chat.chat_history):
+        clean_msg = clean_agent_message(name1, name2, entry['content'])
+        formatted = f"{entry['name']}: {clean_msg}\n\n\n"
+        negotiation += formatted
+        if i >= len(chat.chat_history) - 4:
+            summ += formatted
 
-        clean_msg = clean_agent_message(team1["Agent 1"].name, team2["Agent 2"].name, chat.chat_history[i]['content'])
+    deal_str = ""
+    if summary_agent and user:
+        summary_eval = user.initiate_chat(
+            summary_agent,
+            clear_history=True,
+            max_turns=1,
+            message=summ + summary_prompt
+        )
+        deal_str = summary_eval.chat_history[1]['content']
+        negotiation += "\n" + deal_str
 
-        f = chat.chat_history[i]['name'] + ': ' + clean_msg + '\n\n\n'
-        negotiation += f
+    if write_to_file and team1 and team2 and game_id and round_num is not None:
+        if order == "same":
+            filename = f"Game{game_id}_Round{round_num}_{team1['Name']}_{team2['Name']}.txt"
+        elif order == "opposite":
+            filename = f"Game{game_id}_Round{round_num}_{team2['Name']}_{team1['Name']}.txt"
+        else:
+            filename = f"Game{game_id}_Round{round_num}_Match.txt"
+        overwrite_text_file(negotiation, filename, remove_timestamp=False)
 
-        if i >= (len(chat.chat_history) - 4):
-            summ += f
+    # Parse the result value
+    if summary_termination_message and deal_str.startswith(summary_termination_message):
+        try:
+            return float(re.findall(r'-?\d+(?:[.,]\d+)?', deal_str)[0].replace(",", "."))
+        except Exception:
+            return -1
 
-    summary_eval = user.initiate_chat(
-        summary_agent,
-        clear_history=True,
-        max_turns=1,
-        message=summ + summary_prompt
-    )
+    return -1
 
-    negotiation += "\n" + summary_eval.chat_history[1]['content']
-    if order == "same":
-        filename = f"Game{game_id}_Round{round}_{team1['Name']}_{team2['Name']}.txt"
-    elif order == "opposite":
-        filename = f"Game{game_id}_Round{round}_{team2['Name']}_{team1['Name']}.txt"
-    overwrite_text_file(negotiation, filename, remove_timestamp=False)
+def validate_message(message, game_type="zero-sum"):
+    """Validate agent messages based on game type"""
+    if game_type == "zero-sum":
+        # Check for valid price format
+        price_pattern = r'\$\d+'
+        return bool(re.search(price_pattern, message))
 
-    if summary_eval.chat_history[1]['content'].startswith(summary_termination_message):
+    elif game_type == "prisoners_dilemma":
+        # Check for valid decision
+        decision_pattern = r'(COOPERATE|DEFECT)'
+        return bool(re.search(decision_pattern, message))
 
-        deal = float(re.findall(r'-?\d+(?:[.,]\d+)?', summary_eval.chat_history[1]['content'])[0].replace(",", "."))
+    return False
 
-        return deal
+def create_agent_message(config_list, role, prompt, previous_messages, game_type="zero-sum"):
+    """Generate agent messages with game type specific validation"""
+    message = generate_message(config_list, role, prompt, previous_messages)
 
-    else:
-        return -1
+    if not validate_message(message, game_type):
+        if game_type == "zero-sum":
+            return "Invalid message format. Please include a price in $ format."
+        elif game_type == "prisoners_dilemma":
+            return "Invalid message format. Please explicitly state COOPERATE or DEFECT."
+
+    return message
+
+# In modules/negotiations.py
+
+def calculate_score(agent_1_msg, agent_2_msg, agent_1_value, agent_2_value, game_type="zero-sum"):
+    """Calculate scores based on game type"""
+    if game_type == "zero-sum":
+        # Extract price from messages
+        price = extract_price(agent_1_msg) or extract_price(agent_2_msg)
+        if not price:
+            return None
+
+        return {
+            "minimizer_score": agent_1_value - price,
+            "maximizer_score": price - agent_2_value
+        }
+
+    elif game_type == "prisoners_dilemma":
+        # Extract decisions
+        decision1 = "COOPERATE" in agent_1_msg.upper()
+        decision2 = "COOPERATE" in agent_2_msg.upper()
+
+        # Prisoner's dilemma payoff matrix
+        if decision1 and decision2:  # Both cooperate
+            return {"player1_score": 3, "player2_score": 3}
+        elif not decision1 and not decision2:  # Both defect
+            return {"player1_score": 1, "player2_score": 1}
+        elif decision1:  # 1 cooperates, 2 defects
+            return {"player1_score": 0, "player2_score": 5}
+        else:  # 1 defects, 2 cooperates
+            return {"player1_score": 5, "player2_score": 0}
 
 
 def create_agents(game_id, order, teams, values, name_roles, config_list, negotiation_termination_message):
