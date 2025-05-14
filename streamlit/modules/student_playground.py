@@ -15,8 +15,8 @@ import autogen
 import random
 from datetime import datetime
 import hashlib
-from modules.database_handler import get_group_id_from_user_id, get_class_from_user_id
-from modules.drive_file_manager import get_text_from_file_without_timestamp, overwrite_text_file
+from .database_handler import get_group_id_from_user_id, get_class_from_user_id
+from .drive_file_manager import get_text_from_file_without_timestamp, overwrite_text_file
 
 # Function for cleaning dialogue messages to remove agent name prefixes
 def clean_agent_message(agent_name_1, agent_name_2, message):
@@ -40,13 +40,17 @@ def run_playground_negotiation(role1_prompt, role2_prompt, role1_name, role2_nam
     config_list = {"config_list": [{"model": model, "api_key": api_key}],
                    "temperature": 0.3, "top_p": 0.5}
 
+    # Create a closure to capture chat history
+    def create_termination_check(history):
+        return lambda msg: is_valid_termination(msg, history, negotiation_termination_message)
+
     role1_agent = autogen.ConversableAgent(
         name=f"{role1_name}",
         llm_config=config_list,
         human_input_mode="NEVER",
         chat_messages=None,
         system_message=role1_prompt + f" When the negotiation is finished, say {negotiation_termination_message}. This is a short conversation, you will have about {num_turns} opportunities to intervene.",
-        is_termination_msg=lambda msg: negotiation_termination_message in msg["content"]
+        is_termination_msg=create_termination_check([])
     )
 
     role2_agent = autogen.ConversableAgent(
@@ -55,7 +59,7 @@ def run_playground_negotiation(role1_prompt, role2_prompt, role1_name, role2_nam
         human_input_mode="NEVER",
         chat_messages=None,
         system_message=role2_prompt + f" When the negotiation is finished, say {negotiation_termination_message}. This is a short conversation, you will have about {num_turns} opportunities to intervene.",
-        is_termination_msg=lambda msg: negotiation_termination_message in msg["content"]
+        is_termination_msg=create_termination_check([])
     )
 
     # Initialize chat
@@ -65,6 +69,10 @@ def run_playground_negotiation(role1_prompt, role2_prompt, role1_name, role2_nam
         max_turns=num_turns,
         message=starting_message
     )
+
+    # Update termination checks with actual chat history
+    role1_agent.is_termination_msg = create_termination_check(chat.chat_history)
+    role2_agent.is_termination_msg = create_termination_check(chat.chat_history)
 
     # Process chat history for display
     negotiation_text = ""

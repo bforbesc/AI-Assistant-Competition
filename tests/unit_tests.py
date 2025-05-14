@@ -1,13 +1,13 @@
 import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
-import modules.metrics_handler as metrics
-import modules.database_handler as db
-import modules.negotiations as negotiations
-import modules.student_playground as playground
-import modules.email_service as email
-import modules.schedule as schedule
-import modules.drive_file_manager as drive
+from streamlit.modules import metrics_handler as metrics
+from streamlit.modules import database_handler as db
+from streamlit.modules import negotiations
+from streamlit.modules import student_playground as playground
+from streamlit.modules import email_service as email
+from streamlit.modules import schedule
+from streamlit.modules import drive_file_manager as drive
 import psycopg2
 from datetime import datetime, timedelta
 import random
@@ -16,6 +16,9 @@ from unittest.mock import patch, MagicMock
 import os
 import toml
 import json
+import logging
+from streamlit.modules.drive_file_manager import get_drive_info, authenticate, get_text_from_file
+from google.oauth2 import service_account
 
 # Initialize Streamlit session state
 if not hasattr(st, 'session_state'):
@@ -46,6 +49,9 @@ def setup_secrets():
     if os.path.exists(secrets_path):
         with open(secrets_path) as f:
             st.secrets = toml.load(f)
+            # Ensure drive is a dictionary, not a string
+            if isinstance(st.secrets.get("drive"), str):
+                st.secrets["drive"] = json.loads(st.secrets["drive"])
     else:
         st.secrets = {}
     # Ensure session state variables are initialized to avoid authentication errors
@@ -269,41 +275,31 @@ def test_database_tables():
     conn.close()
 
 def test_google_drive_connection():
-    """Test Google Drive connection and credentials"""
-    print('\n' + '='*50)
-    print('DEBUG: Checking Google Drive credentials')
-    print('='*50)
-    print('DEBUG: st.secrets["drive"] type:', type(st.secrets.get("drive")))
-    print('DEBUG: st.secrets["drive"] content:', st.secrets.get("drive"))
-    print('-'*50)
+    """Test Google Drive connection and file operations"""
+    logger = logging.getLogger(__name__)
+    
+    logger.info("Starting Google Drive test")
+    drive_creds = st.secrets["drive"]
+    logger.info(f"Drive credentials type: {type(drive_creds)}")
+    logger.info(f"Drive credentials keys: {drive_creds.keys() if isinstance(drive_creds, dict) else 'Not a dict'}")
+    
+    if not isinstance(drive_creds, dict) or "client_email" not in drive_creds:
+        logger.error("Invalid drive credentials format")
+        pytest.skip("Skipping Google Drive test - invalid credentials format")
     
     try:
-        drive_creds = st.secrets["drive"]
-        # If it's a string, try to parse as JSON
-        if isinstance(drive_creds, str):
-            try:
-                drive_creds_dict = json.loads(drive_creds)
-                print('DEBUG: Successfully parsed drive_creds as JSON')
-                print('DEBUG: drive_creds_dict keys:', list(drive_creds_dict.keys()))
-                drive_creds = drive_creds_dict
-            except Exception as e:
-                print('DEBUG: Failed to parse drive_creds as JSON:', e)
-                drive_creds = None
+        logger.info("Testing drive access...")
+        # Test authentication
+        creds = service_account.Credentials.from_service_account_info(drive_creds)
+        logger.info("Successfully authenticated with Google Drive")
         
-        use_real_drive = bool(drive_creds) and isinstance(drive_creds, dict) and 'client_email' in drive_creds
-        print('DEBUG: use_real_drive =', use_real_drive)
-        print('='*50 + '\n')
-        
-        if use_real_drive:
-            # Try to access a file to verify connection
-            result = drive.get_text_from_file('test.txt')
-            assert result is not None, "Should be able to access Google Drive"
-        else:
-            pytest.skip("Skipping Google Drive test - using mock drive")
-            
+        # Test file access
+        test_file = get_text_from_file('test.txt')
+        logger.info(f"Successfully accessed test file: {test_file is not None}")
+        assert test_file is not None, "Should be able to access test file"
     except Exception as e:
-        print('DEBUG: Exception when checking drive creds:', e)
-        pytest.skip(f"Skipping Google Drive test - error: {e}")
+        logger.error(f"Error testing drive access: {str(e)}")
+        pytest.skip(f"Skipping Google Drive test - error: {str(e)}")
 
 # Set use_real_drive based on the test result
 use_real_drive = False  # Default to mock

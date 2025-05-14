@@ -1,9 +1,8 @@
 import re
 import autogen
-
-from modules.database_handler import insert_round_data, update_round_data, get_error_matchups
-from modules.drive_file_manager import get_text_from_file_without_timestamp, overwrite_text_file
-from modules.schedule import berger_schedule
+from .database_handler import insert_round_data, update_round_data, get_error_matchups
+from .drive_file_manager import get_text_from_file_without_timestamp, overwrite_text_file
+from .schedule import berger_schedule
 
 
 # Function for cleaning of the dialogue messages that may include in the message "Agent Name:"
@@ -43,6 +42,10 @@ def create_chat(config_list=None, agent_1_role=None, agent_1_prompt=None,
         assert all([agent_1_role, agent_1_prompt, agent_2_role, agent_2_prompt, config_list]), \
             "Standalone mode requires agent roles, prompts, and config_list"
 
+        # Create a closure to capture chat history
+        def create_termination_check(history):
+            return lambda msg: is_valid_termination(msg, history, negotiation_termination_message)
+
         # Build agents dynamically
         agent1 = autogen.ConversableAgent(
             name=agent_1_role,
@@ -50,7 +53,7 @@ def create_chat(config_list=None, agent_1_role=None, agent_1_prompt=None,
             human_input_mode="NEVER",
             chat_messages=None,
             system_message=agent_1_prompt + (f" When the negotiation is finished, say {negotiation_termination_message}." if negotiation_termination_message else ""),
-            is_termination_msg=lambda msg: negotiation_termination_message in msg["content"] if negotiation_termination_message else False
+            is_termination_msg=create_termination_check([])
         )
         agent2 = autogen.ConversableAgent(
             name=agent_2_role,
@@ -58,7 +61,7 @@ def create_chat(config_list=None, agent_1_role=None, agent_1_prompt=None,
             human_input_mode="NEVER",
             chat_messages=None,
             system_message=agent_2_prompt + (f" When the negotiation is finished, say {negotiation_termination_message}." if negotiation_termination_message else ""),
-            is_termination_msg=lambda msg: negotiation_termination_message in msg["content"] if negotiation_termination_message else False
+            is_termination_msg=create_termination_check([])
         )
         name1, name2 = agent1.name, agent2.name
 
@@ -68,6 +71,10 @@ def create_chat(config_list=None, agent_1_role=None, agent_1_prompt=None,
         max_turns=num_turns,
         message=starting_message
     )
+
+    # Update termination checks with actual chat history
+    agent1.is_termination_msg = create_termination_check(chat.chat_history)
+    agent2.is_termination_msg = create_termination_check(chat.chat_history)
 
     negotiation = ""
     summ = ""
@@ -102,8 +109,12 @@ def create_chat(config_list=None, agent_1_role=None, agent_1_prompt=None,
     # Parse the result value
     if summary_termination_message and deal_str.startswith(summary_termination_message):
         try:
-            return float(re.findall(r'-?\d+(?:[.,]\d+)?', deal_str)[0].replace(",", "."))
-        except Exception:
+            # Clean the value string before parsing
+            value_str = deal_str.replace(summary_termination_message, "").strip()
+            value_str = value_str.replace("$", "").replace(",", "")
+            return float(re.findall(r'-?\d+(?:[.,]\d+)?', value_str)[0].replace(",", "."))
+        except Exception as e:
+            print(f"Error parsing deal value: {str(e)}")
             return -1
 
     return -1
@@ -165,6 +176,51 @@ def calculate_score(agent_1_msg, agent_2_msg, agent_1_value, agent_2_value, game
             return {"player1_score": 5, "player2_score": 0}
 
 
+def is_valid_termination(msg, history, negotiation_termination_message):
+    """
+    Enhanced termination check that verifies legitimate agreement conclusion
+    """
+    # Check for termination phrase
+    if negotiation_termination_message not in msg["content"]:
+        return False
+        
+    # Get the last few messages for context
+    last_messages = history[-4:] if len(history) >= 4 else history
+    
+    # Check for agreement patterns
+    agreement_indicators = [
+        "agree", "accepted", "deal", "settled", "confirmed",
+        "final", "conclude", "complete", "done"
+    ]
+    
+    # Count agreement indicators in recent messages
+    agreement_count = sum(1 for m in last_messages 
+                         if any(indicator in m["content"].lower() 
+                               for indicator in agreement_indicators))
+    
+    # Require at least 2 agreement indicators in recent messages
+    if agreement_count < 2:
+        return False
+        
+    # Check for value consistency
+    values = []
+    for m in last_messages:
+        # Extract numeric values from messages, handling different formats
+        # Remove currency symbols and commas
+        clean_content = m["content"].replace("$", "").replace(",", "")
+        numbers = re.findall(r'-?\d+(?:\.\d+)?', clean_content)
+        if numbers:
+            values.extend([float(n) for n in numbers])
+    
+    # If we found values, check if they're consistent
+    if values:
+        # Values should be within 5% of each other
+        max_diff = max(values) * 0.05
+        if max(values) - min(values) > max_diff:
+            return False
+    
+    return True
+
 def create_agents(game_id, order, teams, values, name_roles, config_list, negotiation_termination_message):
     team_info = []
 
@@ -176,53 +232,56 @@ def create_agents(game_id, order, teams, values, name_roles, config_list, negoti
 
     if config_list["config_list"][0]["model"] == "gpt-4o-mini":
         words = 50
-
     elif config_list["config_list"][0]["model"] == "gpt-4o":
         words = 50
-
     else:
         words = 50
 
     for team in teams:
+        try:
+            submission = get_text_from_file_without_timestamp(f'Game{game_id}_Class{team[0]}_Group{team[1]}')
 
-        submission = get_text_from_file_without_timestamp(f'Game{game_id}_Class{team[0]}_Group{team[1]}')
+            value1 = int(next((value for value in values if value[0] == team[0] and int(value[1]) == team[1]), None)[2])
+            value2 = int(next((value for value in values if value[0] == team[0] and int(value[1]) == team[1]), None)[3])
 
-        value1 = int(next((value for value in values if value[0] == team[0] and int(value[1]) == team[1]), None)[2])
-        value2 = int(next((value for value in values if value[0] == team[0] and int(value[1]) == team[1]), None)[3])
+            prompts = [part.strip() for part in submission.split('#_;:)')]
 
-        prompts = [part.strip() for part in submission.split('#_;:)')]
+            if order == "opposite":
+                aux_val = value1
+                value1 = value2
+                value2 = aux_val
+                prompts = prompts[::-1]  # reverse the prompts
 
-        if order == "opposite":
-            aux_val = value1
-            value1 = value2
-            value2 = aux_val
-            prompts = prompts[::-1]  # reverse the prompts
+            # Create a closure to capture chat history
+            def create_termination_check(history):
+                return lambda msg: is_valid_termination(msg, history, negotiation_termination_message)
 
-        new_team = {"Name": f'Class{team[0]}_Group{team[1]}',
-                    "Value 1": value1,  # value as role_1
-                    "Value 2": value2,  # value as role_2
-                    "Agent 1": autogen.ConversableAgent(
-                        name=f"Class{team[0]}_Group{team[1]}_{role_1}",
-                        llm_config=config_list,
-                        human_input_mode="NEVER",
-                        chat_messages=None,
-                        system_message=prompts[
-                                           0] + f" When the negotiation is finished, say {negotiation_termination_message}. This is a short conversation, you will have about 10 opportunities to intervene. Try to keep your answers concise, try not to go over {words} words.",
-                        is_termination_msg=lambda msg: negotiation_termination_message in msg["content"]
-                    ),
+            new_team = {"Name": f'Class{team[0]}_Group{team[1]}',
+                        "Value 1": value1,  # value as role_1
+                        "Value 2": value2,  # value as role_2
+                        "Agent 1": autogen.ConversableAgent(
+                            name=f"Class{team[0]}_Group{team[1]}_{role_1}",
+                            llm_config=config_list,
+                            human_input_mode="NEVER",
+                            chat_messages=None,
+                            system_message=prompts[0] + f" When the negotiation is finished, say {negotiation_termination_message}. This is a short conversation, you will have about 10 opportunities to intervene. Try to keep your answers concise, try not to go over {words} words.",
+                            is_termination_msg=create_termination_check([])
+                        ),
 
-                    "Agent 2": autogen.ConversableAgent(
-                        name=f"Class{team[0]}_Group{team[1]}_{role_2}",
-                        llm_config=config_list,
-                        human_input_mode="NEVER",
-                        chat_messages=None,
-                        system_message=prompts[
-                                           1] + f' When the negotiation is finished, say {negotiation_termination_message}. This is a short conversation, you will have about 10 opportunities to intervene. Try to keep your answers concise, try not to go over {words} words.',
-                        is_termination_msg=lambda msg: negotiation_termination_message in msg["content"]
-                    )
-                    }
+                        "Agent 2": autogen.ConversableAgent(
+                            name=f"Class{team[0]}_Group{team[1]}_{role_2}",
+                            llm_config=config_list,
+                            human_input_mode="NEVER",
+                            chat_messages=None,
+                            system_message=prompts[1] + f' When the negotiation is finished, say {negotiation_termination_message}. This is a short conversation, you will have about 10 opportunities to intervene. Try to keep your answers concise, try not to go over {words} words.',
+                            is_termination_msg=create_termination_check([])
+                        )
+                        }
 
-        team_info.append(new_team)
+            team_info.append(new_team)
+        except Exception as e:
+            print(f"Error creating agents for team {team}: {str(e)}")
+            continue
 
     return team_info
 
@@ -246,7 +305,28 @@ def create_chats(game_id, config_list, name_roles, order, teams, values, num_rou
         llm_config=config_list,
         human_input_mode="NEVER",
         is_termination_msg=lambda msg: summary_termination_message in msg["content"],
-        system_message=f"You will be asked to answer a quick question regarding the outcome of a negotiation. You will be provided with the last 4 interactions of the negotiation and your answer should be based on them. Your answer must be of the type {summary_termination_message}, just adding the value agreed, as in '{summary_termination_message} x', x being the value. Make sure the intervenients have reached an agreement. This means that they both agree on the same value and that the conversation ends with {negotiation_termination_message}. However, this is not enough. Please make sure both parties have reached an agreement. If there is no agreement, your answer should be '{summary_termination_message} -1'."
+        system_message=f"""You are a sophisticated negotiation analyzer. Your task is to determine if a negotiation has reached a valid agreement.
+
+Key Requirements:
+1. Analyze the ENTIRE conversation, not just the last few messages
+2. Look for explicit agreement on a specific value from BOTH parties
+3. Verify that the agreed value is consistent throughout the conversation
+4. Check for confirmation messages from both parties
+5. Ensure the negotiation follows a natural flow and reaches a legitimate conclusion
+6. Consider the negotiation context and expected value ranges
+
+To determine if there is a valid agreement:
+- Both parties must explicitly agree on the same value
+- The agreement must be confirmed by both parties
+- The conversation must end naturally with {negotiation_termination_message}
+- The agreement must be consistent with the negotiation context
+- There must be no contradictions or retractions of the agreement
+
+Your response format:
+- If there is a valid agreement: '{summary_termination_message} [agreed_value]'
+- If there is no valid agreement: '{summary_termination_message} -1'
+
+Be thorough in your analysis and only report an agreement if ALL conditions are met."""
     )
 
     max_retries = 10
@@ -444,7 +524,28 @@ def create_all_error_chats(game_id, config_list, name_roles, order, values, star
         llm_config=config_list,
         human_input_mode="NEVER",
         is_termination_msg=lambda msg: summary_termination_message in msg["content"],
-        system_message=f"You will be asked to answer a quick question regarding the outcome of a negotiation. You will be provided with the last 4 interactions of the negotiation and your answer should be based on them. Your answer must be of the type {summary_termination_message}, just adding the value agreed, as in '{summary_termination_message} x', x being the value. Make sure the conversation has ended with {negotiation_termination_message}, otherwise the negotiation has not been finalized and there was no agreement. If this happens, i.e., if the final message does not include {negotiation_termination_message}, your answer should be '{summary_termination_message} -1'."
+        system_message=f"""You are a sophisticated negotiation analyzer. Your task is to determine if a negotiation has reached a valid agreement.
+
+Key Requirements:
+1. Analyze the ENTIRE conversation, not just the last few messages
+2. Look for explicit agreement on a specific value from BOTH parties
+3. Verify that the agreed value is consistent throughout the conversation
+4. Check for confirmation messages from both parties
+5. Ensure the negotiation follows a natural flow and reaches a legitimate conclusion
+6. Consider the negotiation context and expected value ranges
+
+To determine if there is a valid agreement:
+- Both parties must explicitly agree on the same value
+- The agreement must be confirmed by both parties
+- The conversation must end naturally with {negotiation_termination_message}
+- The agreement must be consistent with the negotiation context
+- There must be no contradictions or retractions of the agreement
+
+Your response format:
+- If there is a valid agreement: '{summary_termination_message} [agreed_value]'
+- If there is no valid agreement: '{summary_termination_message} -1'
+
+Be thorough in your analysis and only report an agreement if ALL conditions are met."""
     )
 
     max_retries = 10

@@ -6,7 +6,7 @@ import os
 import datetime
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
-from modules.database_handler import exists_user
+from .database_handler import exists_user
 
 def get_mail():
     try:
