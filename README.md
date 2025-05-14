@@ -6,12 +6,6 @@ A learning platform for students to design, train, and deploy AI negotiators to 
 
 ## Project Overview
 
-### Development Phases
-1. **Platform Development**: User-friendly interface and core functionality
-2. **Bot Creation**: Tools for users to design and train negotiation strategies
-3. **Performance Tracking**: Comprehensive leaderboard and analytics
-4. **Feedback Loop**: Continuous improvement based on user experience
-
 ### Key Features
 - **Multi-agent negotiation**: Host head‑to‑head matches across diverse game templates
 - **Training & evaluation**: Iteratively refine your bot in a sandbox environment
