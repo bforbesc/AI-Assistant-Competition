@@ -32,12 +32,23 @@ def create_chat(config_list=None, agent_1_role=None, agent_1_prompt=None,
     - If prompts and roles are provided, use standalone dynamic agents (experimental mode)
     """
 
+    # Get game explanation from database
+    game_details = get_game_by_id(game_id)
+    game_explanation = game_details.get("explanation", "") if game_details else ""
+
+    # Add game type and explanation to the context
+    game_context = f"Game Type: {game_type}\nGame Explanation: {game_explanation}\n\n"
+
     # Choose mode based on presence of team1/team2
     if team1 and team2:
         agent1 = team1["Agent 1"]
         agent2 = team2["Agent 2"]
         name1 = agent1.name
         name2 = agent2.name
+
+        # Add game context to prompts
+        agent1.prompt = game_context + agent1.prompt
+        agent2.prompt = game_context + agent2.prompt
     else:
         assert all([agent_1_role, agent_1_prompt, agent_2_role, agent_2_prompt, config_list]), \
             "Standalone mode requires agent roles, prompts, and config_list"

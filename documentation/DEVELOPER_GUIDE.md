@@ -32,105 +32,30 @@ This guide provides detailed information for developers and contributors to the 
 ### 1.1 Key Dependencies
 The project requires several key Python packages:
 - Streamlit 1.32.0+ (for the web interface)
-- OpenAI 1.76.0+ (for AI model integration)
-- PyAutoGen 0.8.7+ (for agent automation)
-- Pandas 2.2.3+ (for data manipulation)
-- Psycopg2-binary 2.9.10+ (for PostgreSQL connection)
-- Google API Client 2.167.0+ (for Google Drive integration)
+- Psycopg2-binary (for PostgreSQL connection)
+- PyJWT (for authentication)
+- Streamlit-AgGrid (for data grid display)
+- AutoGen (for agent automation)
+- OpenAI (for AI model integration)
+- Flask (for web services)
+- Google API Client & Auth (for Google Drive integration)
+- Pandas (for data manipulation)
+- Matplotlib (for data visualization)
+- Pytest (for testing)
 
-A complete list of dependencies can be found in `requirements.txt`.
+A complete list of dependencies can be found in `streamlit/requirements.txt`.
 
 ---
 
 ## 2. Development Environment
 
-### 2.1 Option 1: Using Dev Container (Recommended)
+The project provides multiple ways to set up your development environment:
 
-The project includes a dev container configuration that provides a consistent development environment. To use it:
+- Using `environment.yml` for Conda environments
+- Using `requirements.txt` for pip installations
+- Using `.devcontainer` for VS Code development containers
 
-1. Install prerequisites:
-   - Docker Desktop
-   - VS Code with Remote Containers extension
-
-2. Clone and open the repository:
-   ```bash
-   git clone https://github.com/rbelo/AI-Assistant-Competition.git
-   cd AI-Assistant-Competition
-   ```
-
-3. Open in VS Code and click "Reopen in Container"
-
-The dev container will automatically:
-- Set up Python 3.11
-- Install all required dependencies
-- Configure VS Code extensions
-- Start the development server
-
-### 2.2 Option 2: Manual Setup
-
-If you prefer to set up manually:
-
-1. Install Python 3.11:
-   ```bash
-   # On macOS with Homebrew:
-   brew install python@3.11
-   
-   # On Ubuntu/Debian:
-   sudo apt update
-   sudo apt install python3.11 python3.11-venv
-   ```
-
-2. Create and activate virtual environment:
-   ```bash
-   # Create virtual environment
-   python3.11 -m venv .venv
-
-   # Activate virtual environment
-   # On Windows:
-   .\.venv\Scripts\activate
-   # On macOS/Linux:
-   source .venv/bin/activate
-   ```
-
-3. Install dependencies:
-   ```bash
-   pip install --upgrade pip
-   pip install -r requirements.txt
-   ```
-
-### 2.3 Option 3: Using Conda
-
-If you prefer using Conda for environment management:
-
-1. Install Miniconda or Anaconda if you haven't already:
-   ```bash
-   # Download Miniconda (recommended for most users)
-   # Visit: https://docs.conda.io/en/latest/miniconda.html
-   ```
-
-2. Create and activate the conda environment:
-   ```bash
-   # Create environment from environment.yml
-   conda env create -f environment.yml
-
-   # Activate the environment
-   conda activate ai-assistant-env
-   ```
-
-   The environment will be created with Python 3.11 and all dependencies from requirements.txt will be installed.
-
-4. Configure environment:
-   ```bash
-   # Copy example environment file
-   cp .env.example .env
-   
-   # Update with your settings
-   # Required environment variables:
-   # - DATABASE_URL
-   # - SECRET_KEY
-   # - OPENAI_API_KEY
-   # - GOOGLE_APPLICATION_CREDENTIALS
-   ```
+Choose the method that best suits your workflow. All necessary dependencies and configurations are included in these files.
 
 ---
 
@@ -142,16 +67,15 @@ ai-assistant-competition/
 │   ├── 0_Home.py          # Streamlit entrypoint
 │   ├── modules/           # Core functionality modules
 │   ├── pages/            # Streamlit pages
-│   └── .streamlit/       # Streamlit configuration
+│   ├── .streamlit/       # Streamlit configuration
+│   ├── requirements.txt   # Python dependencies
+│   └── environment.yml    # Conda environment configuration
 ├── tests/                 # Test suite
-│   └── unit_tests.py      # Unit tests
 ├── documentation/         # User and developer guides
 ├── E-R_Model/            # Database entity-relationship models
 ├── .devcontainer/        # Development container configuration
 ├── Tables_AI_Negotiator.sql           # Database schema
 ├── Populate_Tables_AI_Negotiator.sql  # Sample data
-├── requirements.txt       # Python dependencies
-├── environment.yml       # Conda environment configuration
 └── README.md             # Project overview
 ```
 
@@ -264,8 +188,8 @@ streamlit run app/main.py --server.port=8501 --server.address=0.0.0.0
 The project uses pytest for testing. To run the tests:
 
 ```bash
-# Run all tests
-pytest
+# Set PYTHONPATH to include project root (required for imports to work)
+export PYTHONPATH=$PYTHONPATH:$(pwd)
 
 # Run specific test file
 pytest tests/unit_tests.py
@@ -274,11 +198,11 @@ pytest tests/unit_tests.py
 pytest tests/unit_tests.py::test_database_connection
 ```
 
-> **Note:** The codebase is structured so that you can run tests directly from the root directory without any path modifications. The symbolic link (`modules -> streamlit/modules`) ensures that all imports work as expected.
+> **Note:** Setting PYTHONPATH is required because the tests need to import modules from the `streamlit` directory. The test file automatically adds the project root to the Python path, but it's good practice to set it in your environment as well.
 
 ### 6.2 Test Categories
 
-The `unit_tests.py` file includes tests for:
+The test suite includes tests for:
 
 1. **Authentication**
    - User login validation
@@ -302,36 +226,30 @@ The `unit_tests.py` file includes tests for:
 
 ### 6.3 Test Data Setup
 
-Before running tests, you can create test data:
+The project includes a metrics testing dashboard that can be used to create test data. To use it:
 
-```python
-# Create test tables with sample data
-create_test_tables()
+1. Run the test dashboard:
+   ```bash
+   streamlit run tests/unit_tests.py
+   ```
 
-# This will create:
-# - Sample page visits
-# - Test user logins
-# - Game interactions
-# - Metrics data
-```
+2. Click the "Create Test Metrics Tables" button to generate sample data including:
+   - Page visits and durations
+   - User logins
+   - Game interactions and scores
+   - Prompt metrics
+   - Conversation metrics
+   - Deal metrics
+
+Alternatively, you can create test data by:
+- Logging in to the main app
+- Visiting different pages
+- Submitting prompts
+- Playing games
 
 ### 6.4 Test Credentials
 
 Tests use credentials from `streamlit/.streamlit/secrets.toml`. If the file doesn't exist, tests will run with mock data.
-
-### 6.5 Running Unit Tests
-
-To run the unit tests directly, ensure you are in the `tests` directory and set the `PYTHONPATH` environment variable to the project root. This allows Python to find the `streamlit` package and its modules.
-
-#### Example Command
-
-```bash
-PYTHONPATH=.. python unit_tests.py
-```
-
-#### Note on `__init__.py` Files
-
-If you set `PYTHONPATH` correctly, you do not need `__init__.py` files in the `streamlit` or `streamlit/modules` directories. However, if you plan to run the tests using `pytest` or import the modules as a package elsewhere, it is recommended to keep the `__init__.py` files.
 
 ---
 

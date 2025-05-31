@@ -7,8 +7,9 @@ from datetime import datetime
 
 def get_db_connection_string():
     try:
-        return st.secrets["database"]
-    except (KeyError, AttributeError):
+        return st.secrets["database"]["url"]
+    except (KeyError, AttributeError) as e:
+        print(f"Error accessing database connection string: {str(e)}")
         return None
 
 # --------- Helper Functions ---------

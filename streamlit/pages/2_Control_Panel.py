@@ -294,6 +294,13 @@ if st.session_state['authenticated']:
                         # Game details
                         game_name = st.text_input("Game Name", max_chars=100, key="game_name")
                         game_explanation = st.text_area("Game Explanation", key="explanation")
+                        
+                        # Game type selection
+                        game_type = st.selectbox(
+                            "Game Type",
+                            options=["zero_sum", "prisoners_dilemma"],
+                            help="Select the type of game to create. Zero-sum games are negotiation games where one player's gain is another's loss. Prisoner's dilemma games involve strategic decision making with cooperation and defection options."
+                        )
                 
                         col1, col2 = st.columns(2)
                         with col1: name_roles_1 = st.text_input("Name of Minimizer Role", value = 'Buyer')
@@ -359,30 +366,35 @@ if st.session_state['authenticated']:
 
                                 # Store other details in the database
                                 store_game_in_db(next_game_id, 0, user_id, game_name, -1, name_roles, game_academic_year,
-                                                   game_class, password, timestamp_game_creation, submission_deadline, game_explanation)
-                                
+                                                   game_class, password, timestamp_game_creation, submission_deadline, game_explanation, game_type)
+
                                 # Populate the 'plays' table with eligible students
                                 if not populate_plays_table(next_game_id, game_academic_year, game_class):
-                                    error = st.error("An error occurred while assigning students to the game.")
-                                    time.sleep(1)
-                                    error.empty()
-                                
-                                # Store game parameters and generate/store group values in the database
+                                    st.error("An error occurred while assigning students to the game.")
+                                    st.stop()
+
+                                # Now that students are in the plays table, we can get their group IDs
                                 different_groups_classes = get_group_ids_from_game_id(next_game_id)
+                                if different_groups_classes is False:
+                                    st.error("An error occurred while retrieving group information.")
+                                    st.stop()
+                                elif not different_groups_classes:
+                                    st.error("No eligible students found for this game.")
+                                    st.stop()
+
                                 # Store parameters (min/max bounds)
                                 if not store_game_parameters(next_game_id, param1, param2, param3, param4):
                                     st.error("Failed to store game parameters.")
-                                    # Consider adding error handling here if needed
-                                
+                                    st.stop()
+
                                 # Generate and store values for each group
-                                if different_groups_classes: # Check if list is not empty
-                                    for i in different_groups_classes:
-                                        buy_value = int(random.uniform(param1, param2))
-                                        sell_value = int(random.uniform(param3, param4))
-                                        if not store_group_values(next_game_id, i[0], i[1], buy_value, sell_value):
-                                            st.error(f"Failed to store values for group {i[0]}-{i[1]}.")
-                                            # Consider adding error handling here if needed
-                                
+                                for i in different_groups_classes:
+                                    buy_value = int(random.uniform(param1, param2))
+                                    sell_value = int(random.uniform(param3, param4))
+                                    if not store_group_values(next_game_id, i[0], i[1], buy_value, sell_value):
+                                        st.error(f"Failed to store values for group {i[0]}-{i[1]}.")
+                                        st.stop()
+
                                 success = st.success("Game created successfully!")
                                 time.sleep(1)
                                 success.empty()

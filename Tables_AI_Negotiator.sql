@@ -1,9 +1,13 @@
 -- Dropping tables in reverse order of dependency to ensure no foreign key violations                                 
-DROP TABLE IF EXISTS professor;
-DROP TABLE IF EXISTS plays;                              
-DROP TABLE IF EXISTS user_;
-DROP TABLE IF EXISTS round;
-DROP TABLE IF EXISTS game;
+DROP TABLE IF EXISTS professor CASCADE;
+DROP TABLE IF EXISTS plays CASCADE;                              
+DROP TABLE IF EXISTS user_ CASCADE;
+DROP TABLE IF EXISTS round CASCADE;
+DROP TABLE IF EXISTS game CASCADE;
+DROP TABLE IF EXISTS group_values CASCADE;
+DROP TABLE IF EXISTS game_modes CASCADE;
+DROP TABLE IF EXISTS zero_sum_game_config CASCADE;
+DROP TABLE IF EXISTS prisoners_dilemma_config CASCADE;
 
 
 -- user table
@@ -40,9 +44,21 @@ CREATE TABLE game (
     password VARCHAR(100) NOT NULL,                                       -- Hashed password to enter the game, cannot be null 
     timestamp_game_creation TIMESTAMP DEFAULT CURRENT_TIMESTAMP,          -- Timestamp of game creation, defaults to the current time
     timestamp_submission_deadline TIMESTAMP DEFAULT CURRENT_TIMESTAMP,    -- Timestamp of the submission deadline, defaults to the current time
+    explanation TEXT,                                                     -- Explanation of the game rules and objectives
     PRIMARY KEY(game_id)                                                  -- Set game_id as the primary key
     -- Every game must exist in the table 'plays'
     -- Every game must exist in the table 'contains'
+);
+
+-- group_values table
+CREATE TABLE group_values (
+    game_id INT NOT NULL,
+    class VARCHAR(10) NOT NULL,
+    group_id INT NOT NULL,
+    minimizer_value FLOAT NOT NULL,
+    maximizer_value FLOAT NOT NULL,
+    PRIMARY KEY (game_id, class, group_id),
+    FOREIGN KEY (game_id) REFERENCES game(game_id) ON DELETE CASCADE
 );
 
 -- plays table

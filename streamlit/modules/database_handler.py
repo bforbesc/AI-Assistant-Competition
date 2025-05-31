@@ -9,8 +9,9 @@ app.secret_key = 'key'
 # Helper to get the database connection string at runtime
 def get_db_connection_string():
     try:
-        return st.secrets["database"]
-    except (KeyError, AttributeError):
+        return st.secrets["database"]["url"]
+    except (KeyError, AttributeError) as e:
+        print(f"Error accessing database connection string: {str(e)}")
         return None
 
 # Function to populate the 'plays' table with students who match the academic year and class of the created game
@@ -321,15 +322,40 @@ def update_access_to_chats(access, game_id):
         return False
 
 # Function to store game details in the database
-def store_game_in_db(game_id, available, created_by, game_name, number_of_rounds, name_roles, game_academic_year, game_class, password, timestamp_game_creation, submission_deadline, explanation, game_type):
+def store_game_in_db(game_id, available, created_by, game_name, number_of_rounds, name_roles, game_academic_year, game_class, password, timestamp_game_creation, submission_deadline, explanation, game_type="zero_sum"):
     DB_CONNECTION_STRING = get_db_connection_string()
     try:
         with psycopg2.connect(DB_CONNECTION_STRING) as conn:
             with conn.cursor() as cur:
+                # First, get the mode_id for the game type
+                query_mode = """
+                    SELECT mode_id FROM game_modes WHERE mode_name = %(mode)s;
+                """
+                cur.execute(query_mode, {'mode': game_type})
+                mode_result = cur.fetchone()
+                
+                if not mode_result:
+                    # If mode doesn't exist, create it
+                    query_insert_mode = """
+                        INSERT INTO game_modes (mode_name, description)
+                        VALUES (%(mode)s, %(desc)s)
+                        RETURNING mode_id;
+                    """
+                    cur.execute(query_insert_mode, {
+                        'mode': game_type,
+                        'desc': f'Configuration for {game_type} games'
+                    })
+                    mode_id = cur.fetchone()[0]
+                else:
+                    mode_id = mode_result[0]
 
+                # Now insert the game with the mode_id
                 query = """
-                    INSERT INTO game (game_id, available, created_by, game_name, number_of_rounds, name_roles, game_academic_year, game_class, password, timestamp_game_creation, timestamp_submission_deadline, explanation)
-                    VALUES (%(param1)s, %(param2)s, %(param3)s, %(param4)s, %(param5)s, %(param6)s, %(param7)s, %(param8)s, %(param9)s, %(param10)s, %(param11)s, %(param12)s);
+                    INSERT INTO game (game_id, available, created_by, game_name, number_of_rounds, name_roles, 
+                                    game_academic_year, game_class, password, timestamp_game_creation, 
+                                    timestamp_submission_deadline, explanation, mode_id)
+                    VALUES (%(param1)s, %(param2)s, %(param3)s, %(param4)s, %(param5)s, %(param6)s, 
+                            %(param7)s, %(param8)s, %(param9)s, %(param10)s, %(param11)s, %(param12)s, %(param13)s);
                 """
 
                 cur.execute(query, {
@@ -344,12 +370,14 @@ def store_game_in_db(game_id, available, created_by, game_name, number_of_rounds
                     'param9': password, 
                     'param10': timestamp_game_creation,
                     'param11': submission_deadline,
-                    'param12': explanation
+                    'param12': explanation,
+                    'param13': mode_id
                 })
 
                 return True
             
-    except Exception:
+    except Exception as e:
+        print(f"Error in store_game_in_db: {str(e)}")
         return False
     
 # Function to get the group id of the user_id
@@ -581,7 +609,8 @@ def get_group_ids_from_game_id(game_id):
                 group_ids = cur.fetchall()
                 return group_ids
 
-    except Exception:
+    except Exception as e:
+        print(f"Error in get_group_ids_from_game_id: {e}")
         return False
 
 # Function to check user credentials
@@ -590,7 +619,7 @@ def authenticate_user(email, password_hash):
     print(f"Authenticating user with email: {email} and password hash: {password_hash}")
     print(f"DB_CONNECTION_STRING: {DB_CONNECTION_STRING}")
     try:
-        with psycopg2.connect(**DB_CONNECTION_STRING) as conn:
+        with psycopg2.connect(DB_CONNECTION_STRING) as conn:
             print("Connected to the database")
             with conn.cursor() as cur:
                 query = "SELECT 1 FROM user_ WHERE email = %(param1)s AND password = %(param2)s;"
@@ -1151,6 +1180,19 @@ def store_group_values(game_id, class_, group_id, minimizer_value, maximizer_val
     try:
         with psycopg2.connect(DB_CONNECTION_STRING) as conn:
             with conn.cursor() as cur:
+                # First check if the table exists, if not create it
+                cur.execute("""
+                    CREATE TABLE IF NOT EXISTS group_values (
+                        game_id INT NOT NULL,
+                        class VARCHAR(10) NOT NULL,
+                        group_id INT NOT NULL,
+                        minimizer_value FLOAT NOT NULL,
+                        maximizer_value FLOAT NOT NULL,
+                        PRIMARY KEY (game_id, class, group_id),
+                        FOREIGN KEY (game_id) REFERENCES game(game_id) ON DELETE CASCADE
+                    );
+                """)
+                
                 # This query inserts a new row. 
                 # If a row with the same game_id, class, and group_id already exists (ON CONFLICT),
                 # it updates the existing row instead (DO UPDATE SET).
@@ -1170,7 +1212,8 @@ def store_group_values(game_id, class_, group_id, minimizer_value, maximizer_val
                 })
                 
                 return True
-    except Exception:
+    except Exception as e:
+        print(f"Error in store_group_values: {e}")
         return False
 
 # Function to store game parameters (bounds)
@@ -1179,6 +1222,19 @@ def store_game_parameters(game_id, min_minimizer, max_minimizer, min_maximizer, 
     try:
         with psycopg2.connect(DB_CONNECTION_STRING) as conn:
             with conn.cursor() as cur:
+                # First check if the table exists, if not create it
+                cur.execute("""
+                    CREATE TABLE IF NOT EXISTS group_values (
+                        game_id INT NOT NULL,
+                        class VARCHAR(10) NOT NULL,
+                        group_id INT NOT NULL,
+                        minimizer_value FLOAT NOT NULL,
+                        maximizer_value FLOAT NOT NULL,
+                        PRIMARY KEY (game_id, class, group_id),
+                        FOREIGN KEY (game_id) REFERENCES game(game_id) ON DELETE CASCADE
+                    );
+                """)
+                
                 # Store min values in one row using 'params' as class and 0 as group_id
                 query = """
                     INSERT INTO group_values (game_id, class, group_id, minimizer_value, maximizer_value)
