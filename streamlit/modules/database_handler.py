@@ -590,21 +590,22 @@ def authenticate_user(email, password_hash):
     print(f"Authenticating user with email: {email} and password hash: {password_hash}")
     print(f"DB_CONNECTION_STRING: {DB_CONNECTION_STRING}")
     try:
-        with psycopg2.connect(DB_CONNECTION_STRING) as conn:
+        with psycopg2.connect(**DB_CONNECTION_STRING) as conn:
             print("Connected to the database")
             with conn.cursor() as cur:
-
                 query = "SELECT 1 FROM user_ WHERE email = %(param1)s AND password = %(param2)s;"
-
                 print(f"Executing query: {query} with params: {email}, {password_hash}")
-                cur.execute(query, {'param1': email, 'param2':password_hash})
+                cur.execute(query, {'param1': email, 'param2': password_hash})
                 print("Query executed successfully")
-                # Fetch the result
-                exists = cur.fetchone()[0]
-                
+                result = cur.fetchone()
+                if result is None:
+                    print("No matching user found")
+                    return False
+                exists = result[0]
+                print(f"Authentication result: {exists}")
                 return exists
-
-    except Exception:
+    except Exception as e:
+        print(f"Authentication error: {str(e)}")
         return False
 
 # Function to validate if an email belongs to a professor

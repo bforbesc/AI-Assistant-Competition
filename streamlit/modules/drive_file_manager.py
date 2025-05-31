@@ -18,9 +18,8 @@ def get_parent_folder_id():
 
 def get_drive_info():
     try:
-        json_string = st.secrets["drive"]
-        return json.loads(json_string)
-    except (KeyError, AttributeError, json.JSONDecodeError):
+        return dict(st.secrets["drive"])
+    except (KeyError, AttributeError):
         return None
 
 # Authenticates using service account credentials

@@ -319,6 +319,20 @@ create_test_tables()
 
 Tests use credentials from `streamlit/.streamlit/secrets.toml`. If the file doesn't exist, tests will run with mock data.
 
+### 6.5 Running Unit Tests
+
+To run the unit tests directly, ensure you are in the `tests` directory and set the `PYTHONPATH` environment variable to the project root. This allows Python to find the `streamlit` package and its modules.
+
+#### Example Command
+
+```bash
+PYTHONPATH=.. python unit_tests.py
+```
+
+#### Note on `__init__.py` Files
+
+If you set `PYTHONPATH` correctly, you do not need `__init__.py` files in the `streamlit` or `streamlit/modules` directories. However, if you plan to run the tests using `pytest` or import the modules as a package elsewhere, it is recommended to keep the `__init__.py` files.
+
 ---
 
 ## 7. Contributing

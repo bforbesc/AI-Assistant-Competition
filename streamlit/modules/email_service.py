@@ -10,19 +10,19 @@ from .database_handler import exists_user
 
 def get_mail():
     try:
-        return st.secrets["mail"]
+        return st.secrets["mail"]["email"]
     except (KeyError, AttributeError):
         return None
 
 def get_mail_api_pass():
     try:
-        return st.secrets["mail_api"]
+        return st.secrets["mail"]["api_key"]
     except (KeyError, AttributeError):
         return None
 
 def get_app_link():
     try:
-        return st.secrets["app_link"]
+        return st.secrets["app"]["link"]
     except (KeyError, AttributeError):
         return None
 

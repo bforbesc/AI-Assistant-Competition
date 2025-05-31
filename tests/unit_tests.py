@@ -1,6 +1,13 @@
 import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
+import sys
+import os
+
+# Add the project root to the Python path
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
+# Use relative imports
 from streamlit.modules import metrics_handler as metrics
 from streamlit.modules import database_handler as db
 from streamlit.modules import negotiations
@@ -13,7 +20,6 @@ from datetime import datetime, timedelta
 import random
 import pytest
 from unittest.mock import patch, MagicMock
-import os
 import toml
 import json
 import logging
@@ -146,7 +152,7 @@ def main():
     st.subheader("Existing Metrics Tables")
     
     try:
-        conn = psycopg2.connect(st.secrets["database"])
+        conn = psycopg2.connect(st.secrets["database"]["url"])
         cur = conn.cursor()
         
         # Query to get all tables
@@ -253,13 +259,13 @@ def test_database_connection():
     if "Database connection string" in missing_creds:
         pytest.skip("Skipping database connection test - missing credentials")
         
-    conn = psycopg2.connect(st.secrets["database"])
+    conn = psycopg2.connect(st.secrets["database"]["url"])
     assert conn is not None
     conn.close()
 
 def test_database_tables():
     """Test that required tables exist in database"""
-    conn = psycopg2.connect(st.secrets["database"])
+    conn = psycopg2.connect(st.secrets["database"]["url"])
     cur = conn.cursor()
     # Check core tables exist
     cur.execute("""
@@ -375,7 +381,7 @@ def test_metrics_accuracy():
         score=85
     )
     # Verify game metrics were recorded
-    conn = psycopg2.connect(st.secrets["database"])
+    conn = psycopg2.connect(st.secrets["database"]["url"])
     cur = conn.cursor()
     cur.execute("SELECT * FROM game_interaction WHERE game_id = %s", (game_id,))
     result = cur.fetchone()
@@ -508,7 +514,7 @@ def test_page_navigation():
 def test_database_operations():
     """Test database operations"""
     # Test database connection
-    conn = psycopg2.connect(st.secrets["database"])
+    conn = psycopg2.connect(st.secrets["database"]["url"])
     assert conn is not None
     conn.close()
 
@@ -556,6 +562,7 @@ def run_all_tests():
     return all(results.values())
 
 if __name__ == "__main__":
-    main()
+    # main()
     # Uncomment to run all tests
-    # run_all_tests() 
+    # run_all_tests()
+    pass 

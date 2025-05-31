@@ -30,7 +30,7 @@ CREATE TABLE professor (
 -- game table
 CREATE TABLE game (
     game_id SERIAL,                                                       -- Unique identifier for each game, auto-incremented, not null
-    available SMALLINT NOT NULL,                                          -- Indicates whether the negotiation chats are visible to students: 1 (visible), 0 (hidden).
+    available SMALLINT NOT NULL,                                          -- Indicates whether the negotiation chats are visible to students: 1 (visible), 0 (hidden).
     created_by VARCHAR(50) NOT NULL,                                      -- userID (university ID) of the professor that created the game, cannot be null
     game_name VARCHAR(100) NOT NULL,                                      -- Name of the game, cannot be null
     number_of_rounds SMALLINT NOT NULL,                                   -- Number of rounds in the game, cannot be null
@@ -78,8 +78,8 @@ CREATE TABLE game_modes (
     description TEXT
 );
 
--- Add a foreign key to the games table to reference game modes
-ALTER TABLE games
+-- Add a foreign key to the game table to reference game modes
+ALTER TABLE game
 ADD COLUMN mode_id INT,
 ADD CONSTRAINT fk_game_mode FOREIGN KEY (mode_id) REFERENCES game_modes(mode_id);
 
@@ -93,7 +93,7 @@ CREATE TABLE zero_sum_game_config (
     max_minimizer_value INT,
     min_maximizer_value INT,
     max_maximizer_value INT,
-    FOREIGN KEY (game_id) REFERENCES games(game_id) ON DELETE CASCADE
+    FOREIGN KEY (game_id) REFERENCES game(game_id) ON DELETE CASCADE
 );
 
 -- Add a table for Prisoner's Dilemma game-specific configurations
@@ -101,5 +101,5 @@ CREATE TABLE prisoners_dilemma_config (
     config_id SERIAL PRIMARY KEY,
     game_id INT NOT NULL,
     payoff_matrix JSONB NOT NULL,
-    FOREIGN KEY (game_id) REFERENCES games(game_id) ON DELETE CASCADE
+    FOREIGN KEY (game_id) REFERENCES game(game_id) ON DELETE CASCADE
 );

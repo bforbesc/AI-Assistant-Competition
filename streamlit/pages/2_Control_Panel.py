@@ -278,6 +278,10 @@ if st.session_state['authenticated']:
                 case "Create Game":  # Allow professor to create a game
                     # Get academic year and class combinations
                     academic_year_class_combinations = get_academic_year_class_combinations()
+                    
+                    if not academic_year_class_combinations:
+                        st.error("No academic year and class combinations found. Please make sure there are students in the database.")
+                        st.stop()
 
                     # Create options list with both years and year-class combinations
                     combination_options = []
