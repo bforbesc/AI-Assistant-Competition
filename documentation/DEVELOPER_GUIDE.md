@@ -165,7 +165,7 @@ For the complete schema definition, see `Tables_AI_Negotiator.sql`.
 
 ### 5.1 Development Mode
 ```bash
-streamlit run app/main.py
+streamlit run streamlit/0_Home.py
 ```
 
 The application will be available at `http://localhost:8501`.
@@ -176,7 +176,7 @@ The application will be available at `http://localhost:8501`.
 streamlit build
 
 # Run with production settings
-streamlit run app/main.py --server.port=8501 --server.address=0.0.0.0
+streamlit run streamlit/0_Home.py --server.port=8501 --server.address=0.0.0.0
 ```
 
 ---
