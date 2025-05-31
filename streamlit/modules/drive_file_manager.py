@@ -112,18 +112,25 @@ def find_file_by_name_without_timestamp(base_filename):
     if not items:
         print(f"No files found with the pattern: {base_filename}")
         return None
-    # Return matching files
+    # Return all matching file IDs
+    matching_ids = []
     for item in items:
         if base_filename in item['name']:
-            return item['id']
+            matching_ids.append(item['id'])
+    return matching_ids if matching_ids else None
 
 # Combines find_file_by_name (without timestamp) and read_file_content in a single function
 def get_text_from_file_without_timestamp(filename_to_read):
-    file_id_to_read = find_file_by_name_without_timestamp(filename_to_read)
-    if file_id_to_read:
-        file_content = read_file_content(file_id_to_read)
-        return file_content
-    return None
+    file_ids = find_file_by_name_without_timestamp(filename_to_read)
+    if not file_ids:
+        return None
+    # Combine contents of all matching files
+    all_contents = []
+    for file_id in file_ids:
+        content = read_file_content(file_id)
+        if content:
+            all_contents.append(content)
+    return "\n\n---\n\n".join(all_contents) if all_contents else None
 
 # Deletes a file in Google Drive using its ID
 def delete_file_by_id(file_id):

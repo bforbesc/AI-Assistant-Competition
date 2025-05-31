@@ -89,14 +89,14 @@ def run_playground_negotiation(role1_prompt, role2_prompt, role1_name, role2_nam
 def save_playground_results(user_id, class_, group_id, role1_name, role2_name,
                             negotiation_text):
     timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-    filename = f"Playground_Class{class_}_Group{group_id}_{timestamp}"
+    filename = f"Playground_User{user_id}_Class{class_}_Group{group_id}_{timestamp}"
     overwrite_text_file(negotiation_text, filename, remove_timestamp=False)
     return filename
 
 
 # Load previous playground negotiation results
 def load_playground_results(user_id, class_, group_id):
-    pattern = f"Playground_Class{class_}_Group{group_id}"
+    pattern = f"Playground_User{user_id}_Class{class_}_Group{group_id}"
     return get_text_from_file_without_timestamp(pattern)
 
 

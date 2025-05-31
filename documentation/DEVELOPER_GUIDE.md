@@ -165,10 +165,13 @@ For the complete schema definition, see `Tables_AI_Negotiator.sql`.
 
 ### 5.1 Development Mode
 ```bash
-streamlit run streamlit/0_Home.py
+# Navigate to the streamlit directory and run the app
+cd AI-Assistant-Competition/streamlit && streamlit run 0_Home.py
 ```
 
 The application will be available at `http://localhost:8501`.
+
+> **Note:** It's important to run the app from the streamlit directory to ensure proper access to the secrets.toml file located in the .streamlit directory.
 
 ### 5.2 Production Mode
 ```bash

@@ -10,12 +10,19 @@ from modules.database_handler import (
     get_group_values 
 )
 from modules.drive_file_manager import get_text_from_file, overwrite_text_file, get_text_from_file_without_timestamp
+from modules.metrics_handler import record_game_start, record_game_end, record_game_interaction
 
 # ------------------------ SET THE DEFAULT SESSION STATE FOR THE PLAY SECTION ---------------------------- #
 
 # Initialize session state for show password form
 if "not_show_game_password_form" not in st.session_state:
     st.session_state.not_show_game_password_form = []
+
+# Initialize session state for game tracking
+if "game_started" not in st.session_state:
+    st.session_state.game_started = {}
+elif not isinstance(st.session_state.game_started, dict):
+    st.session_state.game_started = {}
 
 # -------------------------------------------------------------------------------------------------------- #
 
@@ -87,6 +94,15 @@ if st.session_state['authenticated']:
             name_roles = selected_game['name_roles'].split('#_;:)')
             name_roles_1, name_roles_2 = name_roles[0], name_roles[1]
 
+            # Ensure game_started is a dictionary
+            if not isinstance(st.session_state.game_started, dict):
+                st.session_state.game_started = {}
+
+            # Record game start if not already started
+            if str(game_id) not in st.session_state.game_started:
+                st.session_state.game_started[str(game_id)] = True
+                record_game_start(st.session_state.get('user_id', 'anonymous'), game_id)
+
             with st.expander("**Explanation**"):
 
                 # Get the Game explanation from Google Drive using the filename
@@ -140,8 +156,15 @@ if st.session_state['authenticated']:
                     prompts = text_area_1 + '\n\n' + '#_;:)' + '\n\n' + text_area_2
                     overwrite_text_file(prompts, f"Game{game_id}_Class{CLASS}_Group{GROUP_ID}_{dt.now().strftime('%Y-%m-%d %H:%M:%S')}")
                     success = st.success('Submission Successful. You can adjust your prompts until the deadline.')
-                    # time.sleep(1)
-                    # success.empty()
+                    
+                    # Record game interaction when prompts are submitted
+                    record_game_interaction(
+                        user_id=st.session_state.get('user_id', 'anonymous'),
+                        game_type="zero-sum",  # Since this is a zero-sum game
+                        game_id=str(game_id),  # Convert to string as required
+                        completion_time=0,  # Will be updated when game ends
+                        score=0  # Will be updated after simulation
+                    )
 
         else:
             st.write("There are no current games.")
@@ -195,6 +218,15 @@ if st.session_state['authenticated']:
                 round_data=get_round_data_by_class_group_id(selected_past_game['game_id'], CLASS, GROUP_ID)
   
                 if round_data:
+                    # Ensure game_started is a dictionary
+                    if not isinstance(st.session_state.game_started, dict):
+                        st.session_state.game_started = {}
+
+                    # Record game end when viewing past game results
+                    if str(selected_past_game['game_id']) in st.session_state.game_started:
+                        record_game_end(st.session_state.get('user_id', 'anonymous'), selected_past_game['game_id'])
+                        del st.session_state.game_started[str(selected_past_game['game_id'])]
+
                     files_names=[]
                     for i in range(len(round_data)):
                         round = round_data[i][0] 

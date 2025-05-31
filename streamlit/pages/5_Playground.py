@@ -185,7 +185,13 @@ else:
         previous_tests = find_playground_results(class_, group_id)
 
         if previous_tests:
-            st.text_area("Previous Test Results", previous_tests, height=400)
+            # Split the combined test results by the separator
+            test_results = previous_tests.split("\n\n---\n\n")
+            
+            # Display each test result in an expander
+            for i, test_result in enumerate(test_results, 1):
+                with st.expander(f"Test Run {i}", expanded=i==1):
+                    st.text_area("Negotiation Transcript", test_result, height=400, key=f"test_{i}")
         else:
             st.info("You don't have any previous playground tests. Create a new test to see results here.")
 

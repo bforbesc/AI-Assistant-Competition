@@ -3,6 +3,8 @@ import autogen
 from .database_handler import insert_round_data, update_round_data, get_error_matchups
 from .drive_file_manager import get_text_from_file_without_timestamp, overwrite_text_file
 from .schedule import berger_schedule
+from modules.metrics_handler import record_prompt_metrics, record_prompt_submission, record_conversation_metrics, record_conversation_processing, record_deal_metrics, record_deal_analysis
+import time
 
 
 # Function for cleaning of the dialogue messages that may include in the message "Agent Name:"
@@ -123,12 +125,48 @@ def create_chat(config_list=None, agent_1_role=None, agent_1_prompt=None,
             # Clean the value string before parsing
             value_str = deal_str.replace(summary_termination_message, "").strip()
             value_str = value_str.replace("$", "").replace(",", "")
-            return float(re.findall(r'-?\d+(?:[.,]\d+)?', value_str)[0].replace(",", "."))
+            deal_value = float(re.findall(r'-?\d+(?:[.,]\d+)?', value_str)[0].replace(",", "."))
         except Exception as e:
             print(f"Error parsing deal value: {str(e)}")
-            return -1
+            deal_value = -1
 
-    return -1
+    # Record prompt metrics
+    start_time = time.time()
+    record_prompt_metrics(
+        user_id=user.name if user else None,
+        prompt=starting_message,
+        response=negotiation,
+        processing_time=time.time() - start_time
+    )
+    record_prompt_submission(user_id=user.name if user else None)
+    
+    # Record conversation metrics
+    record_conversation_metrics(
+        user_id=user.name if user else None,
+        conversation_id=conversation_id,
+        duration=time.time() - start_time,
+        messages_count=len(messages)
+    )
+    record_conversation_processing(
+        user_id=user.name if user else None,
+        processing_time=time.time() - start_time
+    )
+    
+    # Record deal metrics if a deal was made
+    if deal_value > 0:
+        record_deal_metrics(
+            user_id=user.name if user else None,
+            deal_id=deal_id,
+            value=deal_value,
+            duration=time.time() - start_time
+        )
+        record_deal_analysis(
+            user_id=user.name if user else None,
+            deal_id=deal_id,
+            analysis=deal_analysis
+        )
+    
+    return deal_value
 
 def validate_message(message, game_type="zero-sum"):
     """Validate agent messages based on game type"""
@@ -252,8 +290,11 @@ def create_agents(game_id, order, teams, values, name_roles, config_list, negoti
         try:
             submission = get_text_from_file_without_timestamp(f'Game{game_id}_Class{team[0]}_Group{team[1]}')
 
-            value1 = int(next((value for value in values if value[0] == team[0] and int(value[1]) == team[1]), None)[2])
-            value2 = int(next((value for value in values if value[0] == team[0] and int(value[1]) == team[1]), None)[3])
+            value_dict = next((value for value in values if value["class"] == team[0] and int(value["group_id"]) == team[1]), None)
+            if value_dict is None:
+                raise Exception(f"No value found for team {team}")
+            value1 = int(value_dict["minimizer_value"])
+            value2 = int(value_dict["maximizer_value"])
 
             prompts = [part.strip() for part in submission.split('#_;:)')]
 
@@ -567,6 +608,10 @@ Be thorough in your analysis and only report an agreement if ALL conditions are 
 
         team1 = next((team for team in team_info if team["Name"] == f"Class{match[1][0]}_Group{match[1][1]}"), None)
         team2 = next((team for team in team_info if team["Name"] == f"Class{match[2][0]}_Group{match[2][1]}"), None)
+
+        if team1 is None or team2 is None:
+            print(f"Warning: Could not find team1 or team2 for match {match}")
+            continue  # Skip this match
 
         if match[3] == 1:
 
