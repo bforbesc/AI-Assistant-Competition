@@ -1,26 +1,23 @@
-# AI Assistant Competition – User Guide
+# AI Assistant Competition – Student Guide
 
-Welcome! This guide walks **students** through every step of the AI Assistant Competition platform:
+Welcome! This guide walks you through every step of the AI Assistant Competition platform:
 
 1. [Registration & Account Setup](#1-registration--account-setup)
-2. [Building Your First Bot](#2-building-your-first-bot)
-3. [Submitting & Managing Bots](#3-submitting--managing-bots)
-4. [Playground & Pre-Submission Testing](#4-playground--pre-submission-testing)
-5. [Viewing Results & Leaderboard](#5-viewing-results--leaderboard)
+2. [Playing Games](#2-playing-games)
+3. [Playground & Testing](#3-playground--testing)
+4. [Viewing Results](#4-viewing-results)
 
-Each chapter includes examples, troubleshooting tips, and best practices. If you encounter any issues not covered here, please raise a ticket in the course's issue tracker or ask your teaching assistant.
+If you encounter any issues not covered here, please let us know.
 
 ---
 
-> **Tip:** Bookmark this folder locally or in your browser so you can quickly return to any section as you develop, test, and refine your negotiator bots.  
-
 # 1. Registration & Account Setup
 
-Before you can deploy an AI negotiator, you need an account. This section covers:
+Before you can participate in negotiations, you need an account. This section covers:
 
 - Account creation  
 - Email verification  
-- Dashboard tour  
+- Interface tour  
 
 ---
 
@@ -48,243 +45,154 @@ Click the link to activate your account. You'll be redirected to the login page.
 
 ---
 
-## 1.3 Dashboard Tour
+## 1.3 Interface Tour
 
-Once logged in, you're presented with four panels:
+Once logged in, you're presented with these main sections:
 
-1. **My Bots**  
-   - Lists all your bots (Draft, Submitted, Tested)  
-   - **Actions**: Edit, Delete, View logs  
+1. **Play**  
+   - View current and past games
+   - Submit prompts for negotiations
+   - View game explanations and private information
 
-2. **Create New Bot**  
-   - Launches the Bot Wizard (see [Building Your First Bot](#2-building-your-first-bot)).  
+2. **Playground**  
+   - Test your negotiation strategies
+   - Run practice negotiations
+   - View and analyze results
 
-3. **Competitions**  
-   - Shows active tournaments, submission deadlines, and rules for each game template.
+3. **Profile**  
+   - View leaderboards
+   - Manage personal information
 
-4. **Leaderboard**  
-   - Live rankings across all games or filtered by template (see [Viewing Results & Leaderboard](#5-viewing-results--leaderboard) for interpretation).
-
-> **Nuance:**  
-> Instructors can open special "challenge windows." If you don't see a competition listed, check its start date or ask for access.
-
----
-
-# 2. Building Your First Bot
-
-This chapter guides you through **designing**, **structuring**, and **uploading** your negotiation agent.
+4. **About**  
+   - Learn more about the app's authors and contributors
 
 ---
 
-## 2.1 Choose a Game Template
+# 2. Playing Games
 
-At the top of the Bot Wizard, select from templates such as:
-
-- **Ultimatum Game** (two-player division of resources)  
-- **Prisoner's Dilemma** (iterated cooperation vs. defection)  
-
-Each template pre-loads:
-- A **skeleton agent** you can extend  
-- Default **scoring logic**  
+This section covers how to participate in negotiation games:
 
 ---
 
-## 2.2 Understanding the Structure
+## 2.1 Current Games
 
-Your bot must follow these key principles:
-
-1. **Clear Objectives**: Define what your bot should try to accomplish
-2. **Strategic Approach**: Determine how your bot will negotiate
-3. **Constraints**: Set boundaries for acceptable outcomes
-4. **Adaptability**: Consider how your bot will respond to different scenarios
-
----
-
-## 2.3 Best Practices
-
-1. **Start Simple**: Begin with basic strategies and gradually add complexity
-2. **Test Thoroughly**: Use the playground to test different scenarios
-3. **Learn from Others**: Study successful bots and their strategies
-4. **Iterate**: Continuously improve based on performance
+1. Navigate to the **Play** section
+2. Select **Current Games** from the sidebar
+3. Choose a game from the dropdown
+4. For each game you'll see:
+   - Game explanation
+   - Your private information (reservation values)
+   - Prompt submission form for both roles
 
 ---
 
-# 3. Submitting & Managing Bots
+## 2.2 Submitting Prompts
 
-After drafting and testing, you'll **submit** your bot to active competitions. This section covers:
+For each game, you'll need to submit prompts for both roles:
 
-- Submission workflow  
-- Versioning  
-- Common submission errors  
+1. **Read the game explanation** carefully
+2. **Note your private information** (reservation values)
+3. **Write effective prompts** for both roles:
+   - Be clear about goals and constraints
+   - Include the game explanation in your prompts
+   - Specify reservation values
+   - Define negotiation strategies
 
----
-
-## 3.1 Submission Workflow
-
-1. Under **My Bots**, locate your **Draft** entry.  
-2. Click **Submit to Competition**.  
-3. In the dialog:
-   - **Select Competition** (e.g. "Ultimatum—Week 3")  
-   - **Review Rules & Deadline**  
-4. Confirm—your bot status changes to **Submitted**.
-
-> **Heads-up:**  
-> Once submitted, you cannot edit that version. If you discover a bug, create a new draft version and re-submit before the deadline.
+> **Tip:** You can submit and edit your prompts until the deadline.
 
 ---
 
-## 3.2 Versioning & Naming Conventions
+# 3. Playground & Testing
 
-- **Draft v1**, **Draft v2**, etc., appear in chronological order.  
-- **Rename** your bot before submission to reflect the version:  
-  > `alice_fairbot_v2_debugged`  
-
-This helps you and reviewers distinguish performance changes across versions.
+The Playground lets you test your negotiation strategies before submitting them to official games.
 
 ---
 
-## 3.3 Submission Errors & Troubleshooting
+## 3.1 Creating Test Negotiations
 
-| Error Message                               | Cause                                           | Remedy                              |
-|---------------------------------------------|-------------------------------------------------|-------------------------------------|
-| `Invalid submission format`                 | Incorrect file structure                        | Follow the template structure       |
-| `Missing required fields`                   | Incomplete submission                           | Fill all required fields            |
-| `Timeout during evaluation`                 | Bot took too long to respond                    | Optimize your bot's logic           |
-| `Rule violation detected`                   | Bot broke game rules                            | Review and fix rule violations      |
-
----
-
-## 3.4 Managing Multiple Submissions
-
-- Use **Filters** (by template or date) in **My Bots** to compare performance of different versions side-by-side.  
-- **Delete** unused drafts to keep your workspace clean.
-
-When the competition window closes, only the **latest** Submitted version is evaluated.
+1. Go to the **Playground** section
+2. Select the **Create Test** tab
+3. Configure your test:
+   - Set role names (default: "Buyer" and "Seller")
+   - Define reservation values
+   - Write prompts for both roles
+   - Choose number of turns (5-30)
+   - Set starting message
+   - Select model (gpt-4o-mini or gpt-4o)
+   - Enter your OpenAI API key
 
 ---
 
-# 4. Playground & Pre-Submission Testing
+## 3.2 Viewing Test Results
 
-Before the official tournament, stress-test your bot in the **Playground**:
-
-- Run head-to-head matches  
-- Inspect detailed logs  
-- Tune parameters  
+1. Go to the **My Tests** tab
+2. View your previous test negotiations
+3. Analyze the results to improve your strategies
 
 ---
 
-## 4.1 Entering the Playground
+## 3.3 Best Practices
 
-1. From the top menu, select **Playground**.  
-2. Choose any two bots:
-   - Your own drafts  
-   - Public sample bots (e.g. `fair_split_demo`, `tit_for_tat`)  
-3. Select the **Game Template** and **Number of Rounds**.  
-4. Click **Run**.
+1. **Test Different Scenarios**
+   - Try various reservation values
+   - Test different negotiation strategies
+   - Experiment with prompt variations
 
----
-
-## 4.2 Interpreting Logs & Analytics
-
-After execution, you'll see:
-
-- **Dialogue Transcript**  
-  - Each offer, acceptance/rejection, timestamp  
-  - Use **Export** (CSV) to analyze offline
-- **Round-by-Round Scores**  
-  - Your bot's score vs. opponent's  
-  - Aggregate statistics (mean, variance)
-- **Heatmaps & Charts** (if enabled)  
-  - Cooperation rate over time  
-  - Offer distributions
-
-> **Insight:**  
-> A bot that "learns" will often start conservatively then escalate offers. A flat line of 50/50 offers may be too predictable.
+2. **Analyze Results**
+   - Look for patterns in successful negotiations
+   - Identify areas for improvement
+   - Refine your prompts based on outcomes
 
 ---
 
-## 4.3 Iterative Tuning
+# 4. Viewing Results
 
-1. **Adjust strategy** based on performance
-2. **Increment version** in your bot name
-3. **Re-test** in the playground
-
-Repeat until you find a balance of **aggressiveness** vs. **fairness** that maximizes your average payoff.
+After games conclude, you can view your performance and results.
 
 ---
 
-## 4.4 Common Pitfalls
+## 4.1 Past Games
 
-- **State Leakage:** If your bot stores state between runs, results will be skewed
-- **Non-Determinism:** Randomized strategies can yield high variance
-- **Over-complexity:** Simple strategies often outperform complex ones
-- **Rule violations:** Always test against the game rules
-
----
-
-# 5. Viewing Results & the Leaderboard
-
-Once competitions conclude, your performance is summarized in the **Leaderboard**:
-
-- Ranking methodology  
-- Metrics explained  
-- Transcript archives  
+1. Go to the **Play** section
+2. Select **Past Games** from the sidebar
+3. Choose a game to view:
+   - Game explanation
+   - Your private information
+   - Your submitted prompts
+   - Negotiation results (if available)
 
 ---
 
-## 5.1 Accessing the Leaderboard
+## 4.2 Leaderboard
 
-- Click **Leaderboard** in the top menu.  
-- Use filters:
-  - **Game Template** (e.g. Ultimatum, Prisoner's Dilemma)  
-  - **Semester** or **Week**  
-  - **Your cohort** vs. **All participants**
+1. Go to the **Profile** section
+2. Select **Leaderboard** from the sidebar
+3. View the leaderboard to see:
+   - Overall scores
+   - Position and score for each role (Minimizer and Maximizer)
+   - Your class and group highlighted
+   - Filter by specific games or view all games
 
----
-
-## 5.2 Understanding Metrics
-
-| Column         | Definition                                                                  |
-| -------------- | ----------------------------------------------------------------------------|
-| **Rank**       | Your position by descending _average score_                                  |
-| **Avg. Score** | Mean payoff per round across all matches                                    |
-| **Win Rate**   | Percentage of matches where your bot's total score > opponent's             |
-| **Std Dev**    | Variation in your scores (lower = more consistent)                          |
-| **Matches**    | Number of head-to-head games played                                          |
-
-> **Debate:**  
-> Some argue that **Win Rate** overemphasizes outliers (one big win skews perception). Others prefer **Avg. Score** for its granular view. Consider both when evaluating strategies.
+The leaderboard shows:
+- Class and Group ID
+- Overall Score
+- Position and Score for Minimizer Role
+- Position and Score for Maximizer Role
 
 ---
 
-## 5.3 Drill-Down: Match Transcripts
+## 4.3 Learning from Results
 
-- Click any **Rank** or **Avg. Score** cell to see detailed **dialogue logs**.  
-- Export the full transcript as JSON or CSV for offline analysis.
+1. **Review your performance**
+   - Compare with other participants
+   - Identify successful strategies
+   - Learn from negotiation patterns
 
-> **Use Case:**  
-> Compare your best-performing match (high score) with your worst to identify flip points where your logic failed.
-
----
-
-## 5.4 Fairness & Tiebreakers
-
-- **Ties** on Avg. Score are broken by **lower Std Dev** (more consistent bots rank higher).  
-- If still tied, earliest submission wins (encourages early entry).
-
-> **Exception:**  
-> If you suspect a tiebreaker was applied incorrectly, file an issue immediately—timestamps and logs are immutable once the window closes.
+2. **Improve for next time**
+   - Refine your prompt writing
+   - Adjust your negotiation approach
+   - Test new strategies in the playground
 
 ---
 
-## 5.5 Post-Tournament Reflection
-
-1. **Review your strategy** alongside other published sample bots (if available).  
-2. **Discuss** your approach in the course forum:  
-   - Why did you choose your strategy?  
-   - How might you adapt in a real-world negotiation scenario?  
-3. **Iterate** for the next competition window!
-
----
-
-Congratulations on completing the user journey. We look forward to seeing your bots in action and your strategic insights in the debrief sessions!
+Congratulations on completing the user journey. We look forward to seeing your negotiation strategies in action!

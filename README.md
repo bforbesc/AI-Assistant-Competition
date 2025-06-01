@@ -1,16 +1,15 @@
 # AI Assistant Competition 
 
-A learning platform for students to design, train, and deploy AI negotiators to compete in classical negotiation challenges (e.g., Ultimatum Game, Prisoner's Dilemma). This project is part of the course "AI Impact on Business" at Nova SBE, offering a user-friendly interface for students to design, train, and test their AI assistants, along with a leaderboard to track their performance.
+A learning platform for students to their AI agents to compete in negotiation challenges. This project is part of the course "AI Impact on Business" at Nova SBE.
 
 ---
 
 ## Project Overview
 
 ### Key Features
-- **Multi-agent negotiation**: Host head‑to‑head matches across diverse game templates
-- **Training & evaluation**: Iteratively refine your bot in a sandbox environment
-- **Leaderboard & analytics**: Track performance metrics across rounds and semesters
-- **Extensible architecture**: Plug in new games, roles, and scoring rules
+- **Multi-agent negotiation**: Host head‑to‑head matches between students' agents
+- **Training & evaluation**: Iteratively refine your bot
+- **Leaderboard & analytics**: Track performance metrics across rounds
 
 ### Technical Stack
 - **Frontend**: Streamlit for interactive dashboard
@@ -25,11 +24,11 @@ A learning platform for students to design, train, and deploy AI negotiators to 
 ### For Students
 1. Read the [User Guide](documentation/USER_GUIDE.md) for:
    - Registration and account setup
-   - Dashboard overview
-   - Building and submitting bots
-   - Testing and leaderboard
+   - Interface overview
+   - Instructing and submitting agents
+   - Negotiation and leaderboard
 2. Register and create your account
-3. Start building your first bot
+3. Start building your first agent
 4. Test in the playground
 5. Submit to competitions
 
@@ -49,29 +48,41 @@ A learning platform for students to design, train, and deploy AI negotiators to 
 
 ```
 ai-assistant-competition/
-├── streamlit/              # Main application code
-│   ├── 0_Home.py          # Streamlit entrypoint
-│   ├── modules/           # Core functionality modules
-│   │   ├── metrics_handler.py
-│   │   ├── database_handler.py
-│   │   ├── negotiations.py
-│   │   ├── student_playground.py
-│   │   ├── email_service.py
-│   │   ├── drive_file_manager.py
-│   │   ├── game_modes.py
-│   │   └── schedule.py
-│   ├── pages/            # Streamlit pages
-│   └── .streamlit/       # Streamlit configuration
-├── tests/                # Test suite
-│   └── unit_tests.py     # Unit tests
-├── documentation/        # User and developer guides
-├── E-R_Model/           # Database entity-relationship models
-├── .devcontainer/       # Development container configuration
+├── streamlit/                          # Main application code
+│   ├── 0_Home.py                      # Streamlit entrypoint
+│   ├── __init__.py                    # Package initialization
+│   ├── modules/                       # Core functionality modules
+│   │   ├── metrics_handler.py         # Handles analytics and metrics
+│   │   ├── database_handler.py        # Database operations
+│   │   ├── negotiations.py            # Game logic and rules
+│   │   ├── student_playground.py      # Testing environment
+│   │   ├── email_service.py           # Email notifications
+│   │   ├── drive_file_manager.py      # Google Drive integration
+│   │   ├── game_modes.py              # Game templates
+│   │   ├── schedule.py                # Competition scheduling
+│   │   └── __init__.py                # Package initialization
+│   ├── pages/                         # Streamlit pages
+│   │   ├── 1_Play.py                  # Main game interface
+│   │   ├── 2_Control_Panel.py         # Admin and configuration
+│   │   ├── 3_Profile.py               # User profile management
+│   │   ├── 4_About.py                 # Project information
+│   │   └── 5_Playground.py            # Bot testing interface
+│   ├── .streamlit/                    # Streamlit configuration
+│   │   └── secrets.toml               # Environment variables
+│   ├── requirements.txt               # Python dependencies
+│   └── environment.yml                # Conda environment configuration
+├── tests/                             # Test suite
+│   └── unit_tests.py                  # Unit tests
+├── documentation/                     # User and developer guides
+│   ├── USER_GUIDE.md                  # Student documentation
+│   └── DEVELOPER_GUIDE.md             # Technical documentation
+├── E-R_Model/                         # Database entity-relationship models
+├── .devcontainer/                     # Development container configuration
 ├── Tables_AI_Negotiator.sql           # Database schema
 ├── Populate_Tables_AI_Negotiator.sql  # Sample data
-├── requirements.txt      # Python dependencies
-├── environment.yml      # Conda environment configuration
-└── README.md            # Project overview
+├── students_ai_negotiator.csv         # Student data
+├── .gitignore                         # Git ignore rules
+└── README.md                          # Project overview
 ```
 
 ---

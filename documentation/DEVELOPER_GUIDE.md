@@ -2,8 +2,6 @@
 
 This guide provides detailed information for developers and contributors to the AI Assistant Competition platform.
 
-> **Note:** This guide assumes you have already set up your development environment as described in the [README.md](../README.md).
-
 ## Quick Links
 - GitHub Repository: [https://github.com/rbelo/AI-Assistant-Competition](https://github.com/rbelo/AI-Assistant-Competition)
 - Live Application: [https://ai-assistant-competition.streamlit.app/](https://ai-assistant-competition.streamlit.app/)
@@ -59,43 +57,25 @@ Choose the method that best suits your workflow. All necessary dependencies and 
 
 ---
 
-## 3. Project Structure
+## 3. Database Setup
 
-```
-ai-assistant-competition/
-├── streamlit/              # Main application code
-│   ├── 0_Home.py          # Streamlit entrypoint
-│   ├── modules/           # Core functionality modules
-│   ├── pages/            # Streamlit pages
-│   ├── .streamlit/       # Streamlit configuration
-│   ├── requirements.txt   # Python dependencies
-│   └── environment.yml    # Conda environment configuration
-├── tests/                 # Test suite
-├── documentation/         # User and developer guides
-├── E-R_Model/            # Database entity-relationship models
-├── .devcontainer/        # Development container configuration
-├── Tables_AI_Negotiator.sql           # Database schema
-├── Populate_Tables_AI_Negotiator.sql  # Sample data
-└── README.md             # Project overview
-```
-
----
-
-## 4. Database Setup
-
-### 4.1 Database Schema
+### 3.1 Database Schema
 
 The database consists of the following main tables:
 
-- `users`: Stores user accounts and authentication information
-- `bots`: Contains bot definitions and metadata
-- `games`: Records game instances and configurations
-- `matches`: Stores match results and outcomes
-- `leaderboard`: Maintains performance metrics and rankings
+- `user_`: Stores user accounts and authentication information
+- `professor`: Contains professor-specific permissions and settings
+- `game`: Records game instances and configurations
+- `group_values`: Stores group-specific values for games
+- `plays`: Tracks which users are participating in which games
+- `round`: Records round results and scores
+- `game_modes`: Defines different types of games
+- `zero_sum_game_config`: Configuration for zero-sum games
+- `prisoners_dilemma_config`: Configuration for prisoner's dilemma games
 
 For the complete schema definition, see `Tables_AI_Negotiator.sql`.
 
-### 4.2 Initial Setup
+### 3.2 Initial Setup
 
 1. Create Database:
    ```bash
@@ -122,12 +102,23 @@ For the complete schema definition, see `Tables_AI_Negotiator.sql`.
      psql -d ai_assistant_competition -c "SELECT 'Connection successful' AS status;"
      ```
 
-### 4.3 Data Management
+### 3.3 Data Management
 
 1. User Management:
-   ```bash
-   python add_user_interactive.py
-   ```
+   - Professors can add students through the Control Panel's CSV upload feature (available at `/Control_Panel` page)
+     - The CSV must follow this format:
+     ```csv
+     userID;email;groupID;academic year;class
+     ```
+   - Users can also be added directly via SQL queries:
+     ```sql
+     INSERT INTO user_ (user_id, email, password, group_id, academic_year, class) 
+     VALUES ('user_id', 'email', 'hashed_password', group_id, academic_year, 'class');
+     
+     -- If the user is a professor, also add to professor table:
+     INSERT INTO professor (user_id, permission_level)
+     VALUES ('user_id', 'regular');
+     ```
 
 2. Viewing Data:
    ```bash
@@ -138,16 +129,16 @@ For the complete schema definition, see `Tables_AI_Negotiator.sql`.
    \dt
 
    # View users
-   SELECT * FROM users;
+   SELECT * FROM user_;
 
-   # View bots
-   SELECT * FROM bots;
+   # View professors
+   SELECT * FROM professor;
 
-   # View matches
-   SELECT * FROM matches;
+   # View games
+   SELECT * FROM game;
    ```
 
-### 4.4 Backup & Recovery
+### 3.4 Backup & Recovery
 
 1. Create Backup:
    ```bash
@@ -161,9 +152,9 @@ For the complete schema definition, see `Tables_AI_Negotiator.sql`.
 
 ---
 
-## 5. Running the Application
+## 4. Running the Application
 
-### 5.1 Development Mode
+### 4.1 Development Mode
 ```bash
 # Navigate to the streamlit directory and run the app
 cd AI-Assistant-Competition/streamlit && streamlit run 0_Home.py
@@ -173,7 +164,7 @@ The application will be available at `http://localhost:8501`.
 
 > **Note:** It's important to run the app from the streamlit directory to ensure proper access to the secrets.toml file located in the .streamlit directory.
 
-### 5.2 Production Mode
+### 4.2 Production Mode
 ```bash
 # Build the application
 streamlit build
@@ -184,9 +175,9 @@ streamlit run streamlit/0_Home.py --server.port=8501 --server.address=0.0.0.0
 
 ---
 
-## 6. Testing & Quality Assurance
+## 5. Testing & Quality Assurance
 
-### 6.1 Running Tests
+### 5.1 Running Tests
 
 The project uses pytest for testing. To run the tests:
 
@@ -203,7 +194,7 @@ pytest tests/unit_tests.py::test_database_connection
 
 > **Note:** Setting PYTHONPATH is required because the tests need to import modules from the `streamlit` directory. The test file automatically adds the project root to the Python path, but it's good practice to set it in your environment as well.
 
-### 6.2 Test Categories
+### 5.2 Test Categories
 
 The test suite includes tests for:
 
@@ -227,38 +218,15 @@ The test suite includes tests for:
    - Email service
    - Metrics collection
 
-### 6.3 Test Data Setup
-
-The project includes a metrics testing dashboard that can be used to create test data. To use it:
-
-1. Run the test dashboard:
-   ```bash
-   streamlit run tests/unit_tests.py
-   ```
-
-2. Click the "Create Test Metrics Tables" button to generate sample data including:
-   - Page visits and durations
-   - User logins
-   - Game interactions and scores
-   - Prompt metrics
-   - Conversation metrics
-   - Deal metrics
-
-Alternatively, you can create test data by:
-- Logging in to the main app
-- Visiting different pages
-- Submitting prompts
-- Playing games
-
-### 6.4 Test Credentials
+### 5.3 Test Credentials
 
 Tests use credentials from `streamlit/.streamlit/secrets.toml`. If the file doesn't exist, tests will run with mock data.
 
 ---
 
-## 7. Contributing
+## 6. Contributing
 
-### 7.1 Development Workflow
+### 6.1 Development Workflow
 
 1. Fork the repository:
    - Go to [https://github.com/rbelo/AI-Assistant-Competition](https://github.com/rbelo/AI-Assistant-Competition)
@@ -292,14 +260,14 @@ Tests use credentials from `streamlit/.streamlit/secrets.toml`. If the file does
    - Fill in the PR description
    - Submit for review
 
-### 7.2 Code Style
+### 6.2 Code Style
 
 - Follow PEP 8 guidelines
 - Use type hints
 - Write docstrings for all functions
 - Keep functions small and focused
 
-### 7.3 Pull Request Process
+### 6.3 Pull Request Process
 
 1. Ensure all tests pass
 2. Update documentation if needed
