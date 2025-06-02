@@ -48,41 +48,44 @@ A learning platform for students to their AI agents to compete in negotiation ch
 
 ```
 ai-assistant-competition/
-├── streamlit/                          # Main application code
-│   ├── 0_Home.py                      # Streamlit entrypoint
-│   ├── __init__.py                    # Package initialization
-│   ├── modules/                       # Core functionality modules
-│   │   ├── metrics_handler.py         # Handles analytics and metrics
-│   │   ├── database_handler.py        # Database operations
-│   │   ├── negotiations.py            # Game logic and rules
-│   │   ├── student_playground.py      # Testing environment
-│   │   ├── email_service.py           # Email notifications
-│   │   ├── drive_file_manager.py      # Google Drive integration
-│   │   ├── game_modes.py              # Game templates
-│   │   ├── schedule.py                # Competition scheduling
-│   │   └── __init__.py                # Package initialization
-│   ├── pages/                         # Streamlit pages
-│   │   ├── 1_Play.py                  # Main game interface
-│   │   ├── 2_Control_Panel.py         # Admin and configuration
-│   │   ├── 3_Profile.py               # User profile management
-│   │   ├── 4_About.py                 # Project information
-│   │   └── 5_Playground.py            # Bot testing interface
-│   ├── .streamlit/                    # Streamlit configuration
-│   │   └── secrets.toml               # Environment variables
-│   ├── requirements.txt               # Python dependencies
-│   └── environment.yml                # Conda environment configuration
-├── tests/                             # Test suite
-│   └── unit_tests.py                  # Unit tests
-├── documentation/                     # User and developer guides
-│   ├── USER_GUIDE.md                  # Student documentation
-│   └── DEVELOPER_GUIDE.md             # Technical documentation
-├── E-R_Model/                         # Database entity-relationship models
-├── .devcontainer/                     # Development container configuration
-├── Tables_AI_Negotiator.sql           # Database schema
-├── Populate_Tables_AI_Negotiator.sql  # Sample data
-├── students_ai_negotiator.csv         # Student data
-├── .gitignore                         # Git ignore rules
-└── README.md                          # Project overview
+├── streamlit/                                   # Main application code
+│   ├── 0_Home.py                                # Streamlit entrypoint
+│   ├── __init__.py                              # Package initialization
+│   ├── modules/                                 # Core functionality modules
+│   │   ├── metrics_handler.py                   # Handles analytics and metrics
+│   │   ├── database_handler.py                  # Database operations
+│   │   ├── negotiations.py                      # Game logic and rules
+│   │   ├── student_playground.py                # Testing environment
+│   │   ├── email_service.py                     # Email notifications
+│   │   ├── drive_file_manager.py                # Google Drive integration
+│   │   ├── game_modes.py                        # Game templates
+│   │   ├── schedule.py                          # Competition scheduling
+│   │   └── __init__.py                          # Package initialization
+│   ├── pages/                                   # Streamlit pages
+│   │   ├── 1_Play.py                            # Main game interface
+│   │   ├── 2_Control_Panel.py                   # Admin and configuration
+│   │   ├── 3_Profile.py                         # User profile management
+│   │   ├── 4_About.py                           # Project information
+│   │   └── 5_Playground.py                      # Bot testing interface
+│   ├── .streamlit/                              # Streamlit configuration
+│   │   └── secrets.toml                         # Environment variables
+│   ├── requirements.txt                         # Python dependencies
+│   └── environment.yml                          # Conda environment configuration
+├── tests/                                       # Test suite
+│   └── unit_tests.py                            # Unit tests
+├── documentation/                               # User and developer guides
+│   ├── USER_GUIDE.md                            # Student documentation
+│   └── DEVELOPER_GUIDE.md                       # Technical documentation
+├── E-R_Model/                                   # Database entity-relationship models
+│   ├── E-R Model.png                            # Entity-Relationship diagram
+│   └── E-R Model.drawio                         # Draw.io source file
+├── database/                                    # Database files
+│   ├── Tables_AI_Negotiator.sql                 # Database schema
+│   ├── Populate_Tables_AI_Negotiator.sql        # Sample data
+│   └── students_ai_negotiator.csv               # Student data
+├── .devcontainer/                               # Development container configuration
+├── .gitignore                                   # Git ignore rules
+└── README.md                                    # Project overview
 ```
 
 ---
